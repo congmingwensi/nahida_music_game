@@ -1,0 +1,6 @@
+base_interval: 90
+et: 1000
+minimum_distance: 3
+max_overpressure: 1
+offset: 1
+bear_tempo: 6
