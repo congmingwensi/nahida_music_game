@@ -9,6 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 using System;
 using System.Linq;
 using System.Text;
+using UnityEngine.TextCore.Text;
 
 public class GameMenager : MonoBehaviour
 {
@@ -16,7 +17,6 @@ public class GameMenager : MonoBehaviour
     public AudioSource audioSource; //读取文件后，用于存储音频
     public string sheetMusic;//谱面
     private bool startPlaying;//谱面音乐
-
 
     private int CurrentScore;
     public int NoteScore = 100;
@@ -111,6 +111,8 @@ public class GameMenager : MonoBehaviour
     private Dictionary<char, int> noteTime;//谱面文件的时间间隔符
     private bool nodeStill;
     private bool nodeAuto;
+
+    CharacterControl character;
 
     //private float differenceWithinOneSecond;//在检测到来不及按下的时候，会停顿所有音符1s，但是在这1s内按下了，会把所有node变为运动状态。所以 所有的node会有（1s-按下）的差值。如果是该情况，需要让所有NoteObject.initialTime-差值。此变量记录该差值的时间
 
@@ -240,6 +242,11 @@ public class GameMenager : MonoBehaviour
         string FileSheet = sheetMusic + "/test_sheet_music.txt";
         string FileConfig = sheetMusic + "/test_sheet_music.yaml";
         StartCoroutine(LoadAndPlay(FileSheet, FileConfig));
+
+        if (character == null)
+        {
+            character = FindObjectOfType<CharacterControl>();
+        }
     }
     // Update is called once per frame
     void Update()
@@ -359,6 +366,13 @@ public class GameMenager : MonoBehaviour
     public void NodeHit() //显示分数和combo
     {
         combo++;
+        if(combo>100 && combo < 300)
+            character.ChangeImage(2);
+        else if(combo>300 && combo < 1000)
+            character.ChangeImage(3);
+        else if (combo > 1000)
+            character.ChangeImage(4);
+
         comboText.text = "Combo:" + combo;
         if (multiplierThresholds[currentMultiplier - 1] < combo && currentMultiplier != 3)
         {
@@ -401,7 +415,12 @@ public class GameMenager : MonoBehaviour
             }
 
             // 对所有 note 对象应用后续操作
-            foreach (var track in notesGlobal)
+            if (Time.time - startTime >= 1f)
+            {
+                character.ChangeImage(1);
+                combo = 0;
+            }
+                foreach (var track in notesGlobal)
             {
                 foreach (var note in track.Value)
                 {
@@ -437,75 +456,6 @@ public class GameMenager : MonoBehaviour
         }
     }
     
-    public static string SimplifySpectrogram(string spectrogram)
-    {
-        StringBuilder simplified = new StringBuilder();
-        List<char> notes = new List<char>();
-        List<char> intervals = new List<char> { '=', '-', '+' };
-        char lastNote = char.MinValue;
-        int lastNoteIndex = -1;
-
-        for (int i = 0; i < spectrogram.Length; i++)
-        {
-            if (!intervals.Contains(spectrogram[i]))
-            {
-                notes.Add(spectrogram[i]);
-            }
-            else
-            {
-                if (notes.Count > 0)
-                {
-                    // Rule 1: Reduce to two notes if more than two
-                    if (notes.Count > 2)
-                    {
-                        simplified.Append(notes[0]);
-                        simplified.Append(notes[notes.Count - 1]);
-                    }
-                    else
-                    {
-                        foreach (var note in notes)
-                        {
-                            simplified.Append(note);
-                        }
-                    }
-                    notes.Clear();
-                }
-
-                // Rule 2: Handle repetition and intervals
-                if (spectrogram[i] == lastNote && (i - lastNoteIndex) <= 2)
-                {
-                    // If the same note is repeated too quickly, simplify
-                    simplified.Append("!="); // Mark the previous note as not pressed
-                }
-                else
-                {
-                    simplified.Append(spectrogram[i]);
-                }
-                lastNote = spectrogram[i];
-                lastNoteIndex = i;
-            }
-        }
-
-        // Append any remaining notes
-        if (notes.Count > 0)
-        {
-            if (notes.Count > 2)
-            {
-                simplified.Append(notes[0]);
-                simplified.Append(notes[notes.Count - 1]);
-            }
-            else
-            {
-                foreach (var note in notes)
-                {
-                    simplified.Append(note);
-                }
-            }
-        }
-
-        return simplified.ToString();
-    }
-
     class Config//yaml文件的数据结构
     {
         public int base_interval { get; set; }
