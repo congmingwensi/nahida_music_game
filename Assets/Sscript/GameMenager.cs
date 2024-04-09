@@ -394,15 +394,19 @@ public class GameMenager : MonoBehaviour
     {
         IEnumerator WaitAllNotesResume()
         {
-            nodeStill = true;
-            var startTime = Time.time;
-            foreach (var track in notesGlobal)
+            void set_note_sports(bool factor)
             {
-                foreach (var note in track.Value)
+                foreach (var track in notesGlobal)
                 {
-                    note.nodeSports = false; // 重新启动运动
+                    foreach (var note in track.Value)
+                    {
+                        note.nodeSports = factor; // 重新启动运动
+                    }
                 }
             }
+            float startTime = Time.time;
+            nodeStill = true;
+            set_note_sports(!nodeStill);
 
             // 循环等待，直到时间超过3秒或所有按键都被处理
             while (Time.time - startTime < 3f)
@@ -410,6 +414,10 @@ public class GameMenager : MonoBehaviour
                 if (notesOnTracks.All(pair => pair.Value.Count == 0))
                 {
                     break; // 如果所有按键都已处理，则提前退出循环
+                }
+                else
+                {
+                    set_note_sports(!nodeStill);
                 }
                 yield return new WaitForSeconds(0.01f); // 短暂等待，避免持续占用
             }
@@ -420,14 +428,8 @@ public class GameMenager : MonoBehaviour
                 character.ChangeImage(1);
                 combo = 0;
             }
-                foreach (var track in notesGlobal)
-            {
-                foreach (var note in track.Value)
-                {
-                    note.nodeSports = true; // 重新启动运动
-                }
-            }
             nodeStill = false;
+            set_note_sports(!nodeStill);
         }
         StartCoroutine(WaitAllNotesResume()); // 启动协程
     }
