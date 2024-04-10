@@ -39,9 +39,9 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
         if (nodeSports)
         {
             transform.position -= new Vector3(0f, bearTempo * Time.deltaTime, 0f);
-            if (autoMode || gameObject.tag == "Harbor") //è‡ªåŠ¨æ¨¡å¼ï¼Œæˆ– æ ‡è®°ä¸ºéšè—çš„æŒ‰é”®ã€‚éšè—æŒ‰é”®ä¸ºæŒ‰é”®å‰é¢å¸¦! ç”±SpawnNoteç”Ÿæˆnoteæ—¶è®¾ç½®
+            if (autoMode || gameObject.tag == "Harbor") //×Ô¶¯Ä£Ê½£¬»ò ±ê¼ÇÎªÒş²ØµÄ°´¼ü¡£Òş²Ø°´¼üÎª°´¼üÇ°Ãæ´ø! ÓÉSpawnNoteÉú³ÉnoteÊ±ÉèÖÃ
             {
-                if (timeDifference <= 0.3)//å› ä¸ºä¸‹é¢æ˜¯ç¬¬ä¸€æ¬¡missåçš„autoï¼Œæ”¹å˜äº†autoModeä¹‹åä¼šåˆ°è¿™é‡Œã€‚æ‰€ä»¥ç¬¬ä¸€æ¬¡autoçš„Differenceæ˜¯ä¸€ä¸ªå¾ˆå¤§çš„è´Ÿæ•°ã€‚æ•…æ­¤éœ€è¦åˆ¤æ–­å°äº-0.02 å…¼é¡¾ç¬¬ä¸€æ¬¡autoçš„æŒ‰é”®ï¼Œä½¿å…¶æŒ‰ä¸‹
+                if (timeDifference <= 0.3)//ÒòÎªÏÂÃæÊÇµÚÒ»´ÎmissºóµÄauto£¬¸Ä±äÁËautoModeÖ®ºó»áµ½ÕâÀï¡£ËùÒÔµÚÒ»´ÎautoµÄDifferenceÊÇÒ»¸öºÜ´óµÄ¸ºÊı¡£¹Ê´ËĞèÒªÅĞ¶ÏĞ¡ÓÚ-0.02 ¼æ¹ËµÚÒ»´ÎautoµÄ°´¼ü£¬Ê¹Æä°´ÏÂ
                 {
                     AutoPlay();
                     HitNote(true);
@@ -49,31 +49,27 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
             }
             else if (canBePressed && transform.position.y <= -0.5)
             {
-                GameMenager.insrance.NodeStill();
-                GameMenager.insrance.NodeAuto(true);//ç¬¬ä¸€æ¬¡missæ—¶è‡ªåŠ¨auto                
+                GameMenager.insrance.NoteStill();
+                GameMenager.insrance.NoteAuto(true);//µÚÒ»´ÎmissÊ±×Ô¶¯auto                
             }
         }
     }
 
     public float HitNote(bool auto = false)
     {
-        isPressed = true; // æ ‡è®°ä¸ºå·²æŒ‰ä¸‹
-        if (auto == false && autoMode == true) //è¡¨ç¤ºæ­£å¸¸æŒ‰ä¸‹ï¼Œéè„šæœ¬æ§åˆ¶
+        isPressed = true; // ±ê¼ÇÎªÒÑ°´ÏÂ
+        if (auto == false && autoMode == true) //±íÊ¾Õı³£°´ÏÂ£¬·Ç½Å±¾¿ØÖÆ
         {
-            GameMenager.insrance.NodeAuto(false);
+            GameMenager.insrance.NoteAuto(false);
         }
-        //Debug.Log($"HitNote Disappeared:{this.GetHashCode()}");
         GameMenager.insrance.RemoveNoteFromTrack(keyToPress);
-        gameObject.SetActive(false);
-        //float timeDifference = downSumTtime - (Time.time - initialTime);
-        //UnityEngine.Debug.Log($"timeDifference:{timeDifference}, initialTime:{Time.time - initialTime}");
+        //Debug.Log($"HitNote Disappeared:{this.GetHashCode()}");
         return transform.position.y - 0;
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (gameObject.tag != "Harbor" && other.tag == "Activator")
         {
-            GameMenager.insrance.AddNoteToTrack(this, keyToPress);
             canBePressed = true;
         }
     }
@@ -81,11 +77,10 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
     {
         if (other.tag == "Activator" && !isPressed)
         {
-            UnityEngine.Debug.Log("note out of range");
+            UnityEngine.Debug.Log($"{this.gameObject.name} note out of range");
             canBePressed = false;
-            GameMenager.insrance.NodeMissed();
+            GameMenager.insrance.NoteMissed();
             GameMenager.insrance.RemoveNoteFromTrack(keyToPress);
-            gameObject.SetActive(false);
         }
     }
     public void OnPointerClick(PointerEventData eventData)
@@ -95,7 +90,7 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
         GameMenager.insrance.CheckForKeyPress(keyToPress, true);
         GameMenager.insrance.PlayNote(keyToPress);
     }
-    public void AutoPlay()//autoæ¼”å¥ç”¨åˆ°ã€‚ç›´æ¥è°ƒç”¨OnPointerClickçš„è¯ï¼Œå‚æ•°å¾ˆå¤æ‚æ²¡æ³•æ„é€ ï¼Œå†å®šä¹‰ä¸€ä¸ªä¸éœ€è¦æ„é€ å‚æ•°çš„
+    public void AutoPlay()//autoÑİ×àÓÃµ½¡£Ö±½Óµ÷ÓÃOnPointerClickµÄ»°£¬²ÎÊıºÜ¸´ÔÓÃ»·¨¹¹Ôì£¬ÔÙ¶¨ÒåÒ»¸ö²»ĞèÒª¹¹Ôì²ÎÊıµÄ
     {
         GameMenager.insrance.PlayNote(keyToPress);
     }

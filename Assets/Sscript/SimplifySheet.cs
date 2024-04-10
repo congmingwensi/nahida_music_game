@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Windows;
 
 class SpectrogramSimplifier : MonoBehaviour
 {
@@ -11,11 +12,20 @@ class SpectrogramSimplifier : MonoBehaviour
     {
         void ProcessTempMusicSheet(ref StringBuilder temp_music_sheet, ref StringBuilder new_music_sheet, int overpressure_first, int overpressure_end, int max_overpressure, bool shouldAuto)
         {
+            StringBuilder sort_sheet(StringBuilder temp_music_sheet)
+            {
+                string order = "ZXCVBNMASDFGHJQWERTYU1234567890IOKL";
+                char[] temp_input = temp_music_sheet.ToString().ToCharArray();
+                Array.Sort(temp_input, new SpecialComparer(order));
+                return new StringBuilder(new string(temp_input));
+            }
+            temp_music_sheet = sort_sheet(temp_music_sheet);
+            //UnityEngine.Debug.Log($"temp_music_sheet.ToString:{temp_music_sheet.ToString()}");
             if (shouldAuto || ((overpressure_end - overpressure_first + 1) > max_overpressure && max_overpressure != 0))
             {
                 string tempString = temp_music_sheet.ToString();
                 string autoString;
-                if(shouldAuto)
+                if (shouldAuto)
                     autoString = string.Join("", tempString.Select((c, index) => index < tempString.Length ? "!" + c : c.ToString()));
                 else if (temp_music_sheet.Length > 1)
                     autoString = string.Join("", tempString.Select((c, index) => index < tempString.Length - max_overpressure ? "!" + c : c.ToString()));
@@ -33,7 +43,7 @@ class SpectrogramSimplifier : MonoBehaviour
         StringBuilder new_music_sheet = new StringBuilder("");
         StringBuilder temp_music_sheet = new StringBuilder("");
         int current_distance = 0;
-        bool first_key = true;//ç¬¬ä¸€ä¸ªæŒ‰é”®æ—¶ï¼Œcurrent_distance <= minimum_distance ï¼Œä½†æœŸæœ›ä¸ç®€åŒ–
+        bool first_key = true;//ç¬¬ä¸€ä¸ªæŒ‰é”®æ—¶ï¼Œcurrent_distance <= minimum_distance ï¼Œä½†æœŸæœ›ä¸ç®€åŒ?
         Dictionary<char, int> interval_values = new Dictionary<char, int>
     {
         {'=', 1}, {'-', 2}, {'+', 4}
@@ -53,7 +63,7 @@ class SpectrogramSimplifier : MonoBehaviour
             else if ("-=+".IndexOf(music_sheet[i]) != -1)
             {
                 current_distance += interval_values[music_sheet[i]];
-                UnityEngine.Debug.Log($"current_distance :{current_distance }");
+                //UnityEngine.Debug.Log($"current_distance :{current_distance }");
                 Console.WriteLine($"current_distance:{current_distance}");
                 bool shouldAuto = false;
                 if (temp_music_sheet.ToString() != "")
@@ -97,5 +107,27 @@ class SpectrogramSimplifier : MonoBehaviour
                 result += ch.ToString();
         }
         return result;
+    }
+}
+
+public class SpecialComparer : IComparer<char>
+{
+    private readonly string order;
+
+    public SpecialComparer(string order)
+    {
+        this.order = order;
+    }
+
+    public int Compare(char x, char y)
+    {
+        // Èç¹ûÄ³¸ö×Ö·û²»ÔÚË³Ðò×Ö·û´®ÖÐ£¬ÄÇÃ´ÈÏÎªËüµÄË³ÐòºÜ¸ß
+        int indexX = order.IndexOf(x);
+        int indexY = order.IndexOf(y);
+
+        indexX = indexX == -1 ? int.MaxValue : indexX;
+        indexY = indexY == -1 ? int.MaxValue : indexY;
+
+        return indexX.CompareTo(indexY);
     }
 }

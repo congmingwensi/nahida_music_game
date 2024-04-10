@@ -8,15 +8,13 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using System;
 using System.Linq;
-using System.Text;
-using UnityEngine.TextCore.Text;
 
 public class GameMenager : MonoBehaviour
 {
-    public static GameMenager insrance;//å…¶ä»–è„šæœ¬ä¼šè°ƒç”¨GameMenager
-    public AudioSource audioSource; //è¯»å–æ–‡ä»¶åï¼Œç”¨äºå­˜å‚¨éŸ³é¢‘
-    public string sheetMusic;//è°±é¢
-    private bool startPlaying;//è°±é¢éŸ³ä¹
+    public static GameMenager insrance;//ÆäËû½Å±¾»áµ÷ÓÃGameMenager
+    public AudioSource audioSource; //¶ÁÈ¡ÎÄ¼şºó£¬ÓÃÓÚ´æ´¢ÒôÆµ
+    public string sheetMusic;//Æ×Ãæ
+    private bool startPlaying;//Æ×ÃæÒôÀÖ
 
     private int CurrentScore;
     public int NoteScore = 100;
@@ -31,9 +29,8 @@ public class GameMenager : MonoBehaviour
     private int combo;
     public int[] multiplierThresholds;
 
+    public CharGameObjectQueue managerNote;
     private Dictionary<KeyCode, ButtonController> buttonMap;
-    private Dictionary<KeyCode, List<NoteObject>> notesOnTracks = new Dictionary<KeyCode, List<NoteObject>>();//æ‰€æœ‰å¯æŒ‰ä¸‹çš„note
-    private Dictionary<KeyCode, List<NoteObject>> notesGlobal = new Dictionary<KeyCode, List<NoteObject>>();//å…¨å±€æ‰€æœ‰çš„note
     [SerializeField]
     private GameObject NoteZ;
     [SerializeField]
@@ -107,14 +104,15 @@ public class GameMenager : MonoBehaviour
 
     private Dictionary<char, GameObject> noteDictionary;
     private Dictionary<char, Vector3> noteLocation;
-    private int currentOrder = Int32.MaxValue;//æ§åˆ¶nodeæ˜¾ç¤ºä¼˜å…ˆçº§ï¼Œä»intæœ€å¤§å€¼é€’å‡
-    private Dictionary<char, int> noteTime;//è°±é¢æ–‡ä»¶çš„æ—¶é—´é—´éš”ç¬¦
+    private int currentOrder = Int32.MaxValue;//¿ØÖÆnodeÏÔÊ¾ÓÅÏÈ¼¶£¬´Óint×î´óÖµµİ¼õ
+    private Dictionary<char, int> noteTime;//Æ×ÃæÎÄ¼şµÄÊ±¼ä¼ä¸ô·û
     private bool nodeStill;
     private bool nodeAuto;
+    string temp_note;
 
     CharacterControl character;
 
-    //private float differenceWithinOneSecond;//åœ¨æ£€æµ‹åˆ°æ¥ä¸åŠæŒ‰ä¸‹çš„æ—¶å€™ï¼Œä¼šåœé¡¿æ‰€æœ‰éŸ³ç¬¦1sï¼Œä½†æ˜¯åœ¨è¿™1så†…æŒ‰ä¸‹äº†ï¼Œä¼šæŠŠæ‰€æœ‰nodeå˜ä¸ºè¿åŠ¨çŠ¶æ€ã€‚æ‰€ä»¥ æ‰€æœ‰çš„nodeä¼šæœ‰ï¼ˆ1s-æŒ‰ä¸‹ï¼‰çš„å·®å€¼ã€‚å¦‚æœæ˜¯è¯¥æƒ…å†µï¼Œéœ€è¦è®©æ‰€æœ‰NoteObject.initialTime-å·®å€¼ã€‚æ­¤å˜é‡è®°å½•è¯¥å·®å€¼çš„æ—¶é—´
+    //private float differenceWithinOneSecond;//ÔÚ¼ì²âµ½À´²»¼°°´ÏÂµÄÊ±ºò£¬»áÍ£¶ÙËùÓĞÒô·û1s£¬µ«ÊÇÔÚÕâ1sÄÚ°´ÏÂÁË£¬»á°ÑËùÓĞnode±äÎªÔË¶¯×´Ì¬¡£ËùÒÔ ËùÓĞµÄnode»áÓĞ£¨1s-°´ÏÂ£©µÄ²îÖµ¡£Èç¹ûÊÇ¸ÃÇé¿ö£¬ĞèÒªÈÃËùÓĞNoteObject.initialTime-²îÖµ¡£´Ë±äÁ¿¼ÇÂ¼¸Ã²îÖµµÄÊ±¼ä
 
     // Start is called before the first frame update
     void Start()
@@ -125,8 +123,8 @@ public class GameMenager : MonoBehaviour
         currentMultiplier = 1;
         scoreText.text = "Score:0";
         multiplierText.text = "Multipllier:1";
-
-        KeyCode[] keys = new KeyCode[] {//éœ€è¦å¯¹æ¯ä¸ªkeycodeçš„valueç”Ÿæˆä¸€ä¸ªNodeObject listå¯¹è±¡ã€‚ä¸ç„¶æ²¡åŠæ³•æŠŠå•ä¸ªNodeObjectæ·»åŠ è¿›å»
+        managerNote = new CharGameObjectQueue();
+        KeyCode[] keys = new KeyCode[] {//ĞèÒª¶ÔÃ¿¸ökeycodeµÄvalueÉú³ÉÒ»¸öNodeObject list¶ÔÏó¡£²»È»Ã»°ì·¨°Ñµ¥¸öNodeObjectÌí¼Ó½øÈ¥
         KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B,
         KeyCode.N, KeyCode.M, KeyCode.A, KeyCode.S, KeyCode.D,
         KeyCode.F, KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.Q,
@@ -136,21 +134,14 @@ public class GameMenager : MonoBehaviour
         KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.I,
         KeyCode.O, KeyCode.K, KeyCode.L
         };
-        foreach (KeyCode key in keys)
-        {
-            notesOnTracks[key] = new List<NoteObject>();
-            notesGlobal[key] = new List<NoteObject>();
-        }
-
-
-        buttonMap = new Dictionary<KeyCode, ButtonController>(); //key:button ç”¨keyæ§åˆ¶å¯¹åº”çš„buttonåšå‡ºä¸€äº›è¡Œä¸º
+        buttonMap = new Dictionary<KeyCode, ButtonController>(); //key:button ÓÃkey¿ØÖÆ¶ÔÓ¦µÄbutton×ö³öÒ»Ğ©ĞĞÎª
         ButtonController[] buttons = FindObjectsOfType<ButtonController>();
         foreach (ButtonController button in buttons)
         {
             buttonMap[button.keyToPress] = button;
         }
 
-        noteDictionary = new Dictionary<char, GameObject>//æŒ‰é”®å¯¹åº”çš„é¢„åˆ¶ä»¶ã€‚è¯»å–è°±é¢æ–‡ä»¶åï¼Œç”Ÿæˆå¯¹åº”é¢„åˆ¶ä»¶
+        noteDictionary = new Dictionary<char, GameObject>//°´¼ü¶ÔÓ¦µÄÔ¤ÖÆ¼ş¡£¶ÁÈ¡Æ×ÃæÎÄ¼şºó£¬Éú³É¶ÔÓ¦Ô¤ÖÆ¼ş
         {
             {'Z', NoteZ},
             {'X', NoteX},
@@ -188,7 +179,7 @@ public class GameMenager : MonoBehaviour
             {'K', NoteK},
             {'L', NoteL}
         };
-        noteLocation = new Dictionary<char, Vector3> //ä¸åŒéŸ³ç¬¦ç”Ÿæˆçš„åˆå§‹ä½ç½®ï¼Œä¸»è¦æ˜¯xè½´ä¸åŒ
+        noteLocation = new Dictionary<char, Vector3> //²»Í¬Òô·ûÉú³ÉµÄ³õÊ¼Î»ÖÃ£¬Ö÷ÒªÊÇxÖá²»Í¬
         {
             { 'Z',new Vector3(-9.65f, 11.5f, 0f)},
             { 'X',new Vector3(-9.14f, 11.5f, 0f)},
@@ -230,7 +221,7 @@ public class GameMenager : MonoBehaviour
             { 'K',new Vector3(9.10f, 11.5f, 0f)},
             { 'L',new Vector3(9.68f, 11.5f, 0f)},
         };
-        noteTime = new Dictionary<char, int>//è°±é¢æ–‡ä»¶çš„æ—¶é—´é—´éš”ç¬¦
+        noteTime = new Dictionary<char, int>//Æ×ÃæÎÄ¼şµÄÊ±¼ä¼ä¸ô·û
         {
             { '=', 1 },
             { '-', 2 },
@@ -238,7 +229,7 @@ public class GameMenager : MonoBehaviour
         };
 
 
-        sheetMusic = Path.Combine(Application.streamingAssetsPath, "SheetMusic");//è¯»å–è°±é¢æ–‡ä»¶
+        sheetMusic = Path.Combine(Application.streamingAssetsPath, "SheetMusic");//¶ÁÈ¡Æ×ÃæÎÄ¼ş
         string FileSheet = sheetMusic + "/test_sheet_music.txt";
         string FileConfig = sheetMusic + "/test_sheet_music.yaml";
         StartCoroutine(LoadAndPlay(FileSheet, FileConfig));
@@ -251,7 +242,11 @@ public class GameMenager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        CheckForKeyPress(KeyCode.Z);//ä¸åœåœ°æ£€æµ‹æŒ‰é”®æŒ‰ä¸‹
+        var validKeyPresses = new HashSet<KeyPressInfo>(
+            GlobalKeyPresses.KeyPresses.Where(keyPress => Time.time - keyPress.TimePressed <= 0.3));
+        GlobalKeyPresses.KeyPresses = validKeyPresses;
+        string temp_note = GlobalKeyPresses.PrintAllKeysAsOneString().ToString();
+        CheckForKeyPress(KeyCode.Z);//²»Í£µØ¼ì²â°´¼ü°´ÏÂ
         CheckForKeyPress(KeyCode.X);
         CheckForKeyPress(KeyCode.C);
         CheckForKeyPress(KeyCode.V);
@@ -291,24 +286,23 @@ public class GameMenager : MonoBehaviour
         CheckForKeyPress(KeyCode.K);
         CheckForKeyPress(KeyCode.L);
 
-        if (!startPlaying)//æ£€æµ‹éŸ³é¢‘æœªæ’­æ”¾ï¼Œæ’­æ”¾éŸ³é¢‘
+        if (!startPlaying)//¼ì²âÒôÆµÎ´²¥·Å£¬²¥·ÅÒôÆµ
         {
             startPlaying = true;
             string[] sheet_music_path = GetAudioFiles(sheetMusic);
             if (sheet_music_path.Length > 0)
             {
-                StartCoroutine(PlayAudio(sheet_music_path[0])); // æ’­æ”¾ç¬¬ä¸€ä¸ªéŸ³é¢‘æ–‡ä»¶
+                StartCoroutine(PlayAudio(sheet_music_path[0])); // ²¥·ÅµÚÒ»¸öÒôÆµÎÄ¼ş
             }
         }
     }
 
-    public void PlayNote(KeyCode key) //ç§»åŠ¨ç«¯æ’­æ”¾æŒ‰é”®éŸ³
+    public void PlayNote(KeyCode key) //ÒÆ¶¯¶Ë²¥·Å°´¼üÒô
     {
         if (buttonMap.TryGetValue(key, out ButtonController buttonController))
             buttonController.audioSource.Play();
     }
-
-    public void CheckForKeyPress(KeyCode key, bool key_down = false)//å¤„ç†æŒ‰é”®æŒ‰ä¸‹ã€‚key_downç”¨äºç§»åŠ¨ç«¯å¼ºåˆ¶key_downï¼Œåœ¨NoteObject.OnPointerClickè°ƒç”¨
+    public void CheckForKeyPress(KeyCode key, bool key_down = false)//°²×¿¶ËĞèÒªÔÚNoteObjectÊ¹ÓÃOnPointerClickÇ¿ÖÆkey_down
     {
         void CheckValueRange(KeyCode key, float value)
         {
@@ -331,44 +325,49 @@ public class GameMenager : MonoBehaviour
                 }
             }
         }
-
-        if (Input.GetKeyDown(key) || key_down)
+        
+        if (Input.GetKeyDown(key) || key_down || GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
         {
-            NodeAuto(false);
-            if (notesOnTracks[key].Count > 0)
+            NoteAuto(false);
+            if (managerNote.Count > 0)
             {
-                NoteObject noteToHit = notesOnTracks[key][0];
-                CheckValueRange(key, noteToHit.HitNote());
-                NodeHit();
-                //if((Time.time-differenceWithinOneSecond)<1 && differenceWithinOneSecond!=0)
-                //{
-                //    NodeReduceError();
-                //    differenceWithinOneSecond = 0;//å› ä¸ºå¤šå‹çš„æ—¶å€™ï¼Œæ‰€æœ‰é”®éƒ½ä¼šæ»¡è¶³è¯¥æ¡ä»¶ã€‚æ‰€ä»¥åªéœ€è¦å‡å°‘ä¸€æ¬¡å°±å¤Ÿäº†ã€‚èµ‹ç»™0è¡¨ç¤ºå·²è¿è¡Œã€‚ç„¶åå¾…NodeStillé‡æ–°èµ‹å€¼
-                //}
+                KeyValuePair<KeyCode, NoteObject> temp_pare = managerNote.GetTopElement();
+                
+                if (!GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key)) //ÅĞ¶ÏÁÙÊ±°´¼ü×éÖĞ ²»°üº¬¸Ãº¯Êı°´¼üÊ±£¬Ìí¼Óº¯Êı°´¼üµ½ÁÙÊ±°´¼ü×é
+                {
+                    GlobalKeyPresses.KeyPresses.Add(new KeyPressInfo(key, Time.time));
+                    temp_note = GlobalKeyPresses.PrintAllKeysAsOneString().ToString();
+                    Debug.Log($"Ìí¼Ó£º{key.ToString()}£¡" + $"{temp_note}");
+                }
+                if (temp_pare.Value.canBePressed && (GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == temp_pare.Key)) && temp_pare.Key==key) //°´ÏÂµÄkey==³öÕ»µÄkey ÔÙhit
+                {
+                    GlobalKeyPresses.KeyPresses = new HashSet<KeyPressInfo>(GlobalKeyPresses.KeyPresses.Where(keyPress => keyPress.Key != temp_pare.Key));
+                    Debug.Log($"É¾³ı:{key.ToString()}£¡" + $"{temp_note}");
+                    NoteObject noteToHit = temp_pare.Value;
+                    CheckValueRange(key, noteToHit.HitNote());
+                    NoteHit();
+                }
+                else
+                {
+                    Debug.Log($"Ìõ¼ş£º{GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == temp_pare.Key)}" + $"°´¼üÊı×é£º{temp_note}" + $"º¯Êı°´¼ü£º{key.ToString()}"
+                        + $"Peek£º{temp_pare.Key}");
+                }
             }
             else
                 Debug.Log("Count < 0");
-
         }
     }
-    public void AddNoteToTrack(NoteObject note, KeyCode trackKey)//å°†nodeæ·»åŠ åˆ°å¯æŒ‰ä¸‹åˆ—è¡¨ï¼Œè¿›è¡Œç®¡ç†
+    public void RemoveNoteFromTrack(KeyCode trackKey)//½«ÁĞ±íÖĞµÄnodeÉ¾³ı£¬ÒÑ°´ÏÂ»òmissÊ±µ÷ÓÃ
     {
-        notesOnTracks[trackKey].Add(note);
+        if (managerNote.Count != 0 && managerNote.GetTopElement().Key == trackKey)
+            managerNote.Dequeue();
     }
-
-    public void RemoveNoteFromTrack(KeyCode trackKey)//å°†åˆ—è¡¨ä¸­çš„nodeåˆ é™¤ï¼Œå·²æŒ‰ä¸‹æˆ–missæ—¶è°ƒç”¨
-    {
-        if (notesOnTracks[trackKey].Count != 0)
-            notesOnTracks[trackKey].RemoveAt(0);
-        if (notesGlobal[trackKey].Count != 0)
-            notesGlobal[trackKey].RemoveAt(0);
-    }
-    public void NodeHit() //æ˜¾ç¤ºåˆ†æ•°å’Œcombo
+    public void NoteHit() //ÏÔÊ¾·ÖÊıºÍcombo
     {
         combo++;
-        if(combo>100 && combo < 300)
+        if (combo > 100 && combo < 300)
             character.ChangeImage(2);
-        else if(combo>300 && combo < 1000)
+        else if (combo > 300 && combo < 1000)
             character.ChangeImage(3);
         else if (combo > 1000)
             character.ChangeImage(4);
@@ -380,9 +379,8 @@ public class GameMenager : MonoBehaviour
             multiplierText.text = "Multipllier:" + currentMultiplier;
         }
         scoreText.text = "Score:" + CurrentScore;
-
     }
-    public void NodeMissed()//missæ—¶æ”¹å˜comboå’ŒcomboåŠ æˆ
+    public void NoteMissed()//missÊ±¸Ä±äcomboºÍcombo¼Ó³É
     {
         combo = 0;
         currentMultiplier = 1;
@@ -390,75 +388,46 @@ public class GameMenager : MonoBehaviour
         comboText.text = "Combo:" + combo;
     }
 
-    public void NodeStill()
+    public void NoteStill()
     {
         IEnumerator WaitAllNotesResume()
         {
-            void set_note_sports(bool factor)
-            {
-                foreach (var track in notesGlobal)
-                {
-                    foreach (var note in track.Value)
-                    {
-                        note.nodeSports = factor; // é‡æ–°å¯åŠ¨è¿åŠ¨
-                    }
-                }
-            }
-            float startTime = Time.time;
             nodeStill = true;
-            set_note_sports(!nodeStill);
+            var startTime = Time.time;
+            managerNote.NoteSports(false);
+            NoteObject still_key = managerNote.GetTopElement().Value;
 
-            // å¾ªç¯ç­‰å¾…ï¼Œç›´åˆ°æ—¶é—´è¶…è¿‡3ç§’æˆ–æ‰€æœ‰æŒ‰é”®éƒ½è¢«å¤„ç†
             while (Time.time - startTime < 3f)
             {
-                if (notesOnTracks.All(pair => pair.Value.Count == 0))
+                if (managerNote.GetTopElement().Value != still_key)
                 {
-                    break; // å¦‚æœæ‰€æœ‰æŒ‰é”®éƒ½å·²å¤„ç†ï¼Œåˆ™æå‰é€€å‡ºå¾ªç¯
+                    break;
                 }
                 else
                 {
-                    set_note_sports(!nodeStill);
+                    managerNote.NoteSports(false);
                 }
-                yield return new WaitForSeconds(0.01f); // çŸ­æš‚ç­‰å¾…ï¼Œé¿å…æŒç»­å ç”¨
+                yield return new WaitForSeconds(0.01f);
             }
 
-            // å¯¹æ‰€æœ‰ note å¯¹è±¡åº”ç”¨åç»­æ“ä½œ
             if (Time.time - startTime >= 1f)
             {
                 character.ChangeImage(1);
                 combo = 0;
             }
+            managerNote.NoteSports(true);
             nodeStill = false;
-            set_note_sports(!nodeStill);
         }
-        StartCoroutine(WaitAllNotesResume()); // å¯åŠ¨åç¨‹
+        StartCoroutine(WaitAllNotesResume());
     }
 
-
-    public void NodeSports(bool sports = true)//å½“å¯åˆ¤å®šèŒƒå›´å†…ï¼ˆå¯æŒ‰ä¸‹ï¼‰çš„é”®ä¸º0æ—¶ï¼Œä¸éœ€è¦å‚»å‚»çš„åœæ­¢ï¼Œè€Œæ˜¯å¼€å§‹ä¸‹è½è¿åŠ¨
-    {
-        nodeStill = !sports;
-        foreach (var track in notesGlobal)
-        {
-            foreach (var note in track.Value)
-            {
-                note.nodeSports = sports;
-            }
-        }
-    }
-    public void NodeAuto(bool autofactor)//è®¾ç½®å…¨å±€çš„autoæ¨¡å¼ã€‚nodeAutoä»£è¡¨æ–°åˆ›å»ºçš„nodeï¼Œnote.autoModeä¸ºå·²æœ‰çš„node
+    public void NoteAuto(bool autofactor)
     {
         nodeAuto = autofactor;
-        foreach (var track in notesGlobal)
-        {
-            foreach (var note in track.Value)
-            {
-                note.autoMode = autofactor;
-            }
-        }
+        managerNote.NoteAuto(autofactor);
     }
-    
-    class Config//yamlæ–‡ä»¶çš„æ•°æ®ç»“æ„
+
+    class Config
     {
         public int base_interval { get; set; }
         public int et { get; set; }
@@ -467,7 +436,7 @@ public class GameMenager : MonoBehaviour
         public int offset { get; set; }
         public float bear_tempo { get; set; }
     }
-    IEnumerator LoadAndPlay(string sheet_path, string config_path) //è¯»å–è°±é¢å’Œyamlæ–‡ä»¶å†…å®¹
+    IEnumerator LoadAndPlay(string sheet_path, string config_path) //¶ÁÈ¡Æ×ÃæºÍyamlÎÄ¼şÄÚÈİ
     {
         string[] get_content(string base_sheet, string base_config)
         {
@@ -478,7 +447,7 @@ public class GameMenager : MonoBehaviour
 
         string get_file_context(string file_path)
         {
-#if UNITY_ANDROID && !UNITY_EDITOR //æœ¬æ¥æƒ³åšå®‰å“ç«¯æŒ‰é”®é€‚é…ï¼Œåæ¥å‘ç°ï¼Œå®‰è£…å¤ªéš¾è¯»å–æœ¬åœ°æ–‡ä»¶å¤¹ï¼Œæ‰€ä»¥æ­¤åŠŸèƒ½æš‚æ—¶æ²¡ç”¨ã€‚elseæ˜¯Pcç«¯è¯»å–æ–‡ä»¶ä»£ç 
+#if UNITY_ANDROID && !UNITY_EDITOR //±¾À´Ïë×ö°²×¿¶Ë°´¼üÊÊÅä£¬ºóÀ´·¢ÏÖ£¬°²×°Ì«ÄÑ¶ÁÈ¡±¾µØÎÄ¼ş¼Ğ£¬ËùÒÔ´Ë¹¦ÄÜÔİÊ±Ã»ÓÃ¡£elseÊÇPc¶Ë¶ÁÈ¡ÎÄ¼ş´úÂë
         string full_path = Path.Combine("jar:file://" + Application.dataPath + "!/assets/", file_path);
         UnityWebRequest request = UnityWebRequest.Get(full_path);
         yield return request.SendWebRequest();
@@ -496,7 +465,7 @@ public class GameMenager : MonoBehaviour
 #endif
         }
 
-        void SpawnNote(char ch, bool harbor,float bear_tempo)//æ ¹æ®å›ºå®šå­—ç¬¦ç”Ÿæˆå¯¹åº”é¢„åˆ¶ä»¶
+        void SpawnNote(char ch, bool harbor, float bear_tempo)//¸ù¾İ¹Ì¶¨×Ö·ûÉú³É¶ÔÓ¦Ô¤ÖÆ¼ş
         {
             KeyCode CharToKeyCode(char ch, bool harbor = false)
             {
@@ -537,7 +506,7 @@ public class GameMenager : MonoBehaviour
                     case 'O': return KeyCode.O;
                     case 'K': return KeyCode.K;
                     case 'L': return KeyCode.L;
-                    default: return KeyCode.None; // æˆ–è€…å…¶ä»–é»˜è®¤è¡Œä¸º
+                    default: return KeyCode.None; // æˆ–è€…å…¶ä»–é»˜è®¤è¡Œä¸?
                 }
             }
 
@@ -547,7 +516,7 @@ public class GameMenager : MonoBehaviour
             {
                 GameObject temp_node = Instantiate(notePrefab, notePosition, Quaternion.identity) as GameObject;
                 SpriteRenderer temp_renderer = temp_node.GetComponent<SpriteRenderer>();
-                if (harbor)//è®¾ç½®éšè—æŒ‰é”®çš„tagåŠåŠé€æ˜
+                if (harbor)//ÉèÖÃÒş²Ø°´¼üµÄtag¼°°ëÍ¸Ã÷
                 {
                     temp_node.tag = "Harbor";
                     var color = temp_renderer.color;
@@ -559,9 +528,8 @@ public class GameMenager : MonoBehaviour
                 NoteObject note_object = temp_node.GetComponent<NoteObject>();
                 note_object.initialTime = Time.time;
                 note_object.bearTempo = bear_tempo;
-
-                notesGlobal[CharToKeyCode(ch)].Add(note_object);
-                //Debug.Log($"note_object.gameObject.name:{note_object.gameObject.name}ï¼ŒGameMenager nodeAutoï¼š{nodeAuto}");
+                managerNote.Enqueue(CharToKeyCode(ch), note_object);
+                //Debug.Log($"note_object.gameObject.name:{note_object.gameObject.name}");
                 if (nodeAuto)
                 {
                     note_object.autoMode = true;
@@ -584,10 +552,11 @@ public class GameMenager : MonoBehaviour
 
         //Debug.Log($"config result:{config.base_interval},{config.et}");
         bool harbor = false;
-        string lines = SpectrogramSimplifier.SimplifySpectrogram(sheet_content,config.minimum_distance,config.max_overpressure);
+        string lines = SpectrogramSimplifier.SimplifySpectrogram(sheet_content, config.minimum_distance, config.max_overpressure);
         lines = SpectrogramSimplifier.MapGroups(lines, config.offset);
         foreach (char ch in lines)
         {
+            Debug.Log($"{ch}");
             if (char.IsLetter(ch) || char.IsDigit(ch))
             {
                 yield return new WaitWhile(() => nodeStill);
@@ -597,7 +566,7 @@ public class GameMenager : MonoBehaviour
                     harbor = false;
                 }
                 else
-                    SpawnNote(ch,false, config.bear_tempo);
+                    SpawnNote(ch, false, config.bear_tempo);
             }
             else if ("-=+".IndexOf(ch) != -1)
             {
@@ -614,7 +583,7 @@ public class GameMenager : MonoBehaviour
     }
 
 
-    string[] GetAudioFiles(string folderPath)//åˆ¤æ–­è°±é¢æ–‡ä»¶åŒ…å«éŸ³é¢‘æ–‡ä»¶
+    string[] GetAudioFiles(string folderPath)
     {
         string[] mp3Files = Directory.GetFiles(folderPath, "*.mp3");
         string[] oggFiles = Directory.GetFiles(folderPath, "*.ogg");
@@ -623,7 +592,7 @@ public class GameMenager : MonoBehaviour
         return mp3Files.Concat(oggFiles).Concat(wavFiles).ToArray();
     }
 
-    IEnumerator PlayAudio(string filePath)//æ’­æ”¾è°±é¢æ–‡ä»¶ä¸­çš„éŸ³é¢‘æ–‡ä»¶
+    IEnumerator PlayAudio(string filePath) //±³¾°ÒôÀÖ
     {
         using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.UNKNOWN))
         {
