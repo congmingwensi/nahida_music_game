@@ -91,7 +91,7 @@ class SpectrogramSimplifier : MonoBehaviour
     {
         static string CharAt(string input, int index)
         {
-            if (index < 0 || index > input.Length)
+            if (index < 0 || index >= input.Length)
                 return "";
             else
                 return input[index].ToString();

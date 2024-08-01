@@ -17,12 +17,10 @@ public class GameMenager : MonoBehaviour
     private bool startPlaying;//谱面音乐
 
     private int CurrentScore;
-    public int NoteScore = 100;
 
-    public int scorePrefict = 150;
-    public int scoreGood = 100;
+    public int scorePrefict = 100;
+    public int scoreGood = 75;
     public Text scoreText;
-    public Text multiplierText;
     public Text comboText;
 
     private int currentMultiplier;
@@ -122,7 +120,6 @@ public class GameMenager : MonoBehaviour
         CurrentScore = 0;//鍒濆鍖栧垎鏁帮紝combo鍔犲垎姣旓紝鏄剧ず鍐呭
         currentMultiplier = 1;
         scoreText.text = "Score:0";
-        multiplierText.text = "Multipllier:1";
         managerNote = new CharGameObjectQueue();
         KeyCode[] keys = new KeyCode[] {//需要对每个keycode的value生成一个NodeObject list对象。不然没办法把单个NodeObject添加进去
         KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B,
@@ -313,7 +310,7 @@ public class GameMenager : MonoBehaviour
                     buttonController.ChangePQuickImage();
                     CurrentScore += scoreGood;
                 }
-                else if (value < -0.3f)
+                else if (value < -0.4f)
                 {
                     buttonController.ChangePSlowImage();
                     CurrentScore += scoreGood;
@@ -367,16 +364,17 @@ public class GameMenager : MonoBehaviour
         combo++;
         if (combo > 100 && combo < 300)
             character.ChangeImage(2);
-        else if (combo > 300 && combo < 1000)
+        else if (combo > 300 && combo < 500)
             character.ChangeImage(3);
-        else if (combo > 1000)
+        else if (combo > 500 && combo < 1000)
             character.ChangeImage(4);
+        else if (combo > 1000)
+            character.ChangeImage(5);
 
         comboText.text = "Combo:" + combo;
         if (multiplierThresholds[currentMultiplier - 1] < combo && currentMultiplier != 3)
         {
             currentMultiplier++;
-            multiplierText.text = "Multipllier:" + currentMultiplier;
         }
         scoreText.text = "Score:" + CurrentScore;
     }
@@ -384,7 +382,6 @@ public class GameMenager : MonoBehaviour
     {
         combo = 0;
         currentMultiplier = 1;
-        multiplierText.text = "Multipllier:" + currentMultiplier;
         comboText.text = "Combo:" + combo;
     }
 
@@ -520,7 +517,7 @@ public class GameMenager : MonoBehaviour
                 {
                     temp_node.tag = "Harbor";
                     var color = temp_renderer.color;
-                    color.a = 0.4f; // Adjust alpha to make semi-transparent, set value between 0 (transparent) to 1 (opaque)
+                    color.a = 0.3f; // Adjust alpha to make semi-transparent, set value between 0 (transparent) to 1 (opaque)
                     temp_renderer.color = color;
                 }
                 temp_renderer.sortingOrder = currentOrder--;

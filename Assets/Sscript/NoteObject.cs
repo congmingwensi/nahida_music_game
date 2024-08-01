@@ -34,20 +34,20 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
     void Update()
     {
         //float timeDifference = downSumTtime - (Time.time - initialTime);
-        float timeDifference = transform.position.y - 0;
+        float timeDifference = transform.position.y - 0.95f;
         //UnityEngine.Debug.Log($"this.gameObject.name:{this.gameObject.name},nodeSports:{nodeSports}");
         if (nodeSports)
         {
             transform.position -= new Vector3(0f, bearTempo * Time.deltaTime, 0f);
             if (autoMode || gameObject.tag == "Harbor") //自动模式，或 标记为隐藏的按键。隐藏按键为按键前面带! 由SpawnNote生成note时设置
             {
-                if (timeDifference <= 0.3)//因为下面是第一次miss后的auto，改变了autoMode之后会到这里。所以第一次auto的Difference是一个很大的负数。故此需要判断小于-0.02 兼顾第一次auto的按键，使其按下
+                if (timeDifference <= 0.1)//因为下面是第一次miss后的auto，改变了autoMode之后会到这里。所以第一次auto的Difference是一个很大的负数。故此需要判断小于-0.02 兼顾第一次auto的按键，使其按下
                 {
                     AutoPlay();
                     HitNote(true);
                 }
             }
-            else if (canBePressed && transform.position.y <= -0.5)
+            else if (canBePressed && transform.position.y <= 0.3)
             {
                 GameMenager.insrance.NoteStill();
                 GameMenager.insrance.NoteAuto(true);//第一次miss时自动auto                
@@ -64,7 +64,7 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
         }
         GameMenager.insrance.RemoveNoteFromTrack(keyToPress);
         //Debug.Log($"HitNote Disappeared:{this.GetHashCode()}");
-        return transform.position.y - 0;
+        return transform.position.y - 0.90f;
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
