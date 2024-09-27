@@ -8,13 +8,14 @@ using System.Diagnostics;
 using static UnityEngine.GraphicsBuffer;
 using YamlDotNet.Core.Tokens;
 
-public class NoteObject : MonoBehaviour, IPointerClickHandler
+public class NoteObject : MonoBehaviour
 {
     public float bearTempo;
     //private float downSumTtime;
 
     public bool canBePressed;
     private bool isPressed;
+    public char keyChar;
     public KeyCode keyToPress;
     public float initialTime;
 
@@ -43,14 +44,15 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
             {
                 if (timeDifference <= 0.1)//因为下面是第一次miss后的auto，改变了autoMode之后会到这里。所以第一次auto的Difference是一个很大的负数。故此需要判断小于-0.02 兼顾第一次auto的按键，使其按下
                 {
-                    AutoPlay();
+                    if(GameMenager.instance.managerNote.Count != 0 && GameMenager.instance.managerNote.GetTopElement().Key == keyChar)
+                        GameMenager.instance.notePlayers[keyChar].PlayNoteSound(keyChar);
                     HitNote(true);
                 }
             }
             else if (canBePressed && transform.position.y <= 0.3)
             {
-                GameMenager.insrance.NoteStill();
-                GameMenager.insrance.NoteAuto(true);//第一次miss时自动auto                
+                GameMenager.instance.NoteStill();
+                GameMenager.instance.NoteAuto(true);//第一次miss时自动auto                
             }
         }
     }
@@ -60,9 +62,9 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
         isPressed = true; // 标记为已按下
         if (auto == false && autoMode == true) //表示正常按下，非脚本控制
         {
-            GameMenager.insrance.NoteAuto(false);
+            GameMenager.instance.NoteAuto(false);
         }
-        GameMenager.insrance.RemoveNoteFromTrack(keyToPress);
+        GameMenager.instance.RemoveNoteFromTrack(keyChar);
         //Debug.Log($"HitNote Disappeared:{this.GetHashCode()}");
         return transform.position.y - 0.90f;
     }
@@ -79,19 +81,9 @@ public class NoteObject : MonoBehaviour, IPointerClickHandler
         {
             UnityEngine.Debug.Log($"{this.gameObject.name} note out of range");
             canBePressed = false;
-            GameMenager.insrance.NoteMissed();
-            GameMenager.insrance.RemoveNoteFromTrack(keyToPress);
+            GameMenager.instance.NoteMissed();
+            GameMenager.instance.RemoveNoteFromTrack(keyChar);
         }
     }
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        if (!isPressed)
-            isPressed = true;
-        GameMenager.insrance.CheckForKeyPress(keyToPress, true);
-        GameMenager.insrance.PlayNote(keyToPress);
-    }
-    public void AutoPlay()//auto演奏用到。直接调用OnPointerClick的话，参数很复杂没法构造，再定义一个不需要构造参数的
-    {
-        GameMenager.insrance.PlayNote(keyToPress);
-    }
+    
 }

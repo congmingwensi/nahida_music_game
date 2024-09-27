@@ -16,31 +16,15 @@ public class ButtonController : MonoBehaviour
     public KeyCode keyToPress;
 
     private SpriteRenderer theMR;
-    public AudioSource audioSource;
     // Start is called before the first frame update
     void Start()
     {
         theMR = GetComponent<SpriteRenderer>();
-        audioSource = GetComponent<AudioSource>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(keyToPress))
-        {
-            audioSource.Play();
-            //theMR.sprite = pressedImage;
-        }
-        if (Input.GetKeyUp(keyToPress))
-        {
-            StartCoroutine(DelayedSpriteReset(1f));
-        }
-    }
-    private IEnumerator DelayedSpriteReset(float delay)
-    {
-        yield return new WaitForSeconds(delay); // 等待指定的延迟时间
-        theMR.sprite = defaulImage; // 将图片重置为默认图片
     }
     
     private IEnumerator ProcessQueue()
@@ -54,14 +38,14 @@ public class ButtonController : MonoBehaviour
     }
     private void CreateEffect(Sprite image)
     {
-        Debug.Log("Creating effect with image: " + image.name);
+        //Debug.Log("Creating effect with image: " + image.name);
         GameObject effect = Instantiate(effectPrefab, transform.position, Quaternion.identity);
-        Debug.Log("Effect position: " + effect.transform.position + ", Sorting Layer: " + effect.GetComponent<SpriteRenderer>().sortingLayerName);
+        //Debug.Log("Effect position: " + effect.transform.position + ", Sorting Layer: " + effect.GetComponent<SpriteRenderer>().sortingLayerName);
         EffectController effectController = effect.GetComponent<EffectController>();
         if (effectController != null)
         {
             effectController.StartEffect(image, 0.1f, 0.3f);
-            Debug.Log("Effect started");
+            //Debug.Log("Effect started");
         }
         else
         {

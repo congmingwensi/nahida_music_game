@@ -48,6 +48,7 @@ public class SceneLoader: MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         // Load the next scene or hide the image
         if (!string.IsNullOrEmpty("music_scene"))
         {
+
             SceneManager.LoadScene("music_scene");
         }
         else

@@ -4,20 +4,20 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 
-public class CharGameObjectQueue
+public class CharGameObjectQueue : IEnumerable<KeyValuePair<char, NoteObject>>
 {
-    private Queue<KeyValuePair<KeyCode, NoteObject>> note_queue = new Queue<KeyValuePair<KeyCode, NoteObject>>();
-    private static Dictionary<KeyCode, NoteObject> dictionary = new Dictionary<KeyCode, NoteObject>();
+    private Queue<KeyValuePair<char, NoteObject>> note_queue = new Queue<KeyValuePair<char, NoteObject>>();
+    private static Dictionary<char, NoteObject> dictionary = new Dictionary<char, NoteObject>();
 
     // 入队操作
-    public void Enqueue(KeyCode key, NoteObject obj)
+    public void Enqueue(char key, NoteObject obj)
     {
         // 入队 KeyValuePair
-        note_queue.Enqueue(new KeyValuePair<KeyCode, NoteObject>(key, obj));
+        note_queue.Enqueue(new KeyValuePair<char, NoteObject>(key, obj));
     }
 
     // 出队操作
-    public KeyValuePair<KeyCode, NoteObject>? Dequeue()
+    public KeyValuePair<char, NoteObject>? Dequeue()
     {
         //Debug.Log("出队！");
         if (note_queue.Count == 0)
@@ -29,12 +29,12 @@ public class CharGameObjectQueue
         item.Value.gameObject.SetActive(false);
         return item;
     }
-    public KeyValuePair<KeyCode, NoteObject> GetTopElement()
+    public KeyValuePair<char, NoteObject> GetTopElement()
     {
         if (note_queue.Count > 0)
             return note_queue.Peek();
         else
-            return new KeyValuePair<KeyCode, NoteObject>();
+            return new KeyValuePair<char, NoteObject>();
     }
 
     // 获取当前队列中的元素数量
@@ -44,7 +44,7 @@ public class CharGameObjectQueue
     }
 
     // 允许外部访问字典（只读）
-    public static IReadOnlyDictionary<KeyCode, NoteObject> Dictionary
+    public static IReadOnlyDictionary<char, NoteObject> Dictionary
     {
         get { return dictionary; }
     }
@@ -58,16 +58,30 @@ public class CharGameObjectQueue
     }
     public void NoteSports(bool sports = true)//全局运动状态调整
     {
-        if (sports)
-            Debug.Log("运动");
-        else
-            Debug.Log("静止");
+        //if (sports)
+        //    Debug.Log("运动");
+        //else
+        //    Debug.Log("静止");
         foreach (var track in note_queue)
         {
             NoteObject temp_node = track.Value.GetComponent<NoteObject>();
             temp_node.nodeSports = sports;
         }
     }
+    public IEnumerator<KeyValuePair<char, NoteObject>> GetEnumerator()
+    {
+        return note_queue.GetEnumerator();
+    }
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+    public void ClearAll()
+    {
+        note_queue.Clear();
+        dictionary.Clear();
+    }
+
 }
 
 public class KeyPressInfo

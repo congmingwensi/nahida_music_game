@@ -32,6 +32,7 @@ public class BackTitle : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     }
     public void OnPointerClick(PointerEventData eventData)
     {
+        GameMenager.instance.managerNote.ClearAll();
         SceneManager.LoadScene("front_page");
     }
 }
