@@ -107,6 +107,7 @@ public class GameMenager : MonoBehaviour
     private Dictionary<char, float> noteTime;//谱面文件的时间间隔符
     public Dictionary<char, string> noteAudio;
     private bool nodeStill;
+    private float stillTime = 0;
     private bool nodeAuto;
     private Dictionary<char, AudioSource> playingNotes = new Dictionary<char, AudioSource>();
     CharacterControl character;
@@ -366,14 +367,14 @@ public class GameMenager : MonoBehaviour
 // Update is called once per frame
 void Update()
     {
-        var expiredKeys = GlobalKeyPresses.KeyPresses.Where(keyPress => Time.time - keyPress.TimePressed > 0.2f).ToList();
+        var expiredKeys = GlobalKeyPresses.KeyPresses.Where(keyPress => Time.time - keyPress.TimePressed > 0.3f).ToList();
         foreach (var expiredKey in expiredKeys)
         {
             GlobalKeyPresses.KeyPresses.Remove(expiredKey);
             if (processedKeys.Contains(expiredKey.Key))
             {
                 processedKeys.Remove(expiredKey.Key);
-                Debug.Log($"按键 {expiredKey.Key} 超时，从 processedKeys 中移除");
+                //Debug.Log($"按键 {expiredKey.Key} 超时，从 processedKeys 中移除");
             }
         }
         CheckForKeyPress(KeyCode.Z);//不停地检测按键按下
@@ -588,7 +589,7 @@ void Update()
                 if (!GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
                 {
                     GlobalKeyPresses.KeyPresses.Add(new KeyPressInfo(key, Time.time)); // 存储按键时间
-                    Debug.Log($"添加：{key.ToString()}！当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
+                    //Debug.Log($"添加：{key.ToString()}！当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
                     factor = 1;
                 }
                 // 检查按键是否与音符匹配，允许错位匹配
@@ -596,12 +597,12 @@ void Update()
                 {
                     // 移除已经处理的按键
                     GlobalKeyPresses.KeyPresses.RemoveWhere(keyPress => charToKeycode(temp_pare.Key) == keyPress.Key);
-                    Debug.Log($"删掉keyPress.Key之后：{temp_pare.Key},还剩按键：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
+                    //Debug.Log($"删掉keyPress.Key之后：{temp_pare.Key},还剩按键：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
                     KeyCode processedKey = charToKeycode(temp_pare.Key);
                     if (processedKeys.Contains(processedKey))
                     {
                         processedKeys.Remove(processedKey);
-                        Debug.Log($"从 processedKeys 中移除按键：{processedKey}");
+                        //Debug.Log($"从 processedKeys 中移除按键：{processedKey}");
                     }
                     NoteObject noteToHit = temp_pare.Value;
                     CheckValueRange(key, noteToHit.HitNote());
@@ -623,21 +624,17 @@ void Update()
         bool wasKeyDown = previousKeyStates[key];
         if ((keyIsPressed && !wasKeyDown) || key_down || GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
         {
-            Debug.Log($"Frame: {Time.frameCount}, Key: {key}, IsKeyDown: {keyDownThisFrame}, WasKeyDown: {wasKeyDown}, 已按下: {string.Join(", ", processedKeys)}");
+            //Debug.Log($"Frame: {Time.frameCount}, Key: {key}, IsKeyDown: {keyDownThisFrame}, WasKeyDown: {wasKeyDown}, 已按下: {string.Join(", ", processedKeys)}");
             if (!processedKeys.Contains(key))
             {
                 processedKeys.Add(key);
                 KeyValuePair<char, NoteObject> temp_pare = managerNote.GetTopElement();
-                Debug.Log($"进入 Key: {key}, GetKeyDown: {keyDownThisFrame}, GetKeyUp: {keyUpThisFrame}, GetKey: {keyIsPressed}，已按下:{string.Join(", ", processedKeys)}\n" +
-                    $"当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()},当前队顶：{temp_pare.Key}");
+                //Debug.Log($"进入 Key: {key}, GetKeyDown: {keyDownThisFrame}, GetKeyUp: {keyUpThisFrame}, GetKey: {keyIsPressed}，已按下:{string.Join(", ", processedKeys)}\n" +
+                //    $"当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()},当前队顶：{temp_pare.Key}");
                 NoteAuto(false);  // 暂停自动播放
                 int factor = ProcessingPress(temp_pare);
                 if (factor == 2)
                 {
-                    if ("zxvbnasfghqwrty!@$%^*(iok".Contains(temp_pare.Key))
-                        Debug.Log("黑");
-                    else
-                        Debug.Log("白");
                     notePlayers[temp_pare.Key].PlayNoteSound(temp_pare.Key);
                 }
                 else if (factor==1)
@@ -651,7 +648,7 @@ void Update()
         if (!keyIsPressed && wasKeyDown && processedKeys.Contains(key))
         {
             processedKeys.Remove(key);
-            Debug.Log($"Key: {key} 已松开，从 processedKeys 中移除");
+            //Debug.Log($"Key: {key} 已松开，从 processedKeys 中移除");
         }
         previousKeyStates[key] = keyIsPressed;
     }
@@ -689,6 +686,7 @@ void Update()
 
     public void NoteStill()
     {
+        stillTime = 0;
         IEnumerator WaitAllNotesResume()
         {
             nodeStill = true;
@@ -706,6 +704,7 @@ void Update()
                 {
                     managerNote.NoteSports(false);
                 }
+                stillTime += 0.01f;
                 yield return new WaitForSeconds(0.01f);
             }
 
@@ -811,7 +810,6 @@ void Update()
         Config config = yamlDeserializer.Deserialize<Config>(config_content);
 
         //Debug.Log($"config result:{config.base_interval},{config.et}");
-        bool harbor = false;
         string lines = SpectrogramSimplifier.SimplifySpectrogram(sheet_content, config.minimum_distance, config.max_overpressure,config.overpressure_probability);
         lines = SpectrogramSimplifier.MapGroups(lines, config.offset);
         string temp_sheet_music_path = Path.Combine(Application.streamingAssetsPath, "SheetMusic") + "/temp_sheet_music.txt";//临时谱面文件
@@ -824,41 +822,68 @@ void Update()
             temp_sheet_writer.WriteLine($"\n琴键对应谱：{piano_key}");
         }
         int next_bpm = 1;
-        foreach (char ch in lines)
+        int index = 0;
+        while (index < lines.Length)
         {
-            //Debug.Log($"ch:{ch},current_bpm:{config.base_interval}");
-            if (char.IsLetter(ch) || char.IsDigit(ch) || "!@$%^*(".Contains(ch))
+            List<(char noteChar, bool harborFlag)> simultaneousNotes = new List<(char noteChar, bool harborFlag)>();
+            bool tempHarborFlag = false; // 临时的 harborFlag，用于下一个音符
+
+            // Collect simultaneous notes
+            while (index < lines.Length)
             {
-                yield return new WaitWhile(() => nodeStill);
-                if (harbor)
+                char ch = lines[index];
+                if (ch == '~')
                 {
-                    SpawnNote(ch, true, config.bear_tempo);
-                    harbor = false;
+                    tempHarborFlag = true; // 设置临时的 harborFlag
+                    index++;
+                }
+                else if (char.IsLetterOrDigit(ch) || "!@$%^*(".Contains(ch))
+                {
+                    // 将音符和对应的 harborFlag 添加到列表中
+                    simultaneousNotes.Add((ch, tempHarborFlag));
+                    tempHarborFlag = false; // 重置临时 harborFlag
+                    index++;
                 }
                 else
-                    SpawnNote(ch, false, config.bear_tempo);
+                    break;
             }
-            else if ("-=+.".IndexOf(ch) != -1)
+
+            // Spawn all collected notes together
+            foreach (var (noteChar, harbor) in simultaneousNotes)
             {
-                float interval = noteTime[ch] * config.base_interval / 1000f;
-                if (interval > 0)
-                    yield return new WaitForSeconds(interval);
-                else
-                    Debug.Log("error interval");
+                SpawnNote(noteChar, harbor, config.bear_tempo);
+            }
+
+            // Handle timing character
+            if (index < lines.Length)
+            {
                 yield return new WaitWhile(() => nodeStill);
-            }
-            else if (ch == '~')
-                harbor = true;
-            else if (ch == '>') //改bpm
-            {
-                if (next_bpm < AnalyzeMid.bpm_data.Count)
+                char ch = lines[index];
+                if ("-=+.".IndexOf(ch) != -1)
                 {
-                    config.base_interval = 60000/AnalyzeMid.bpm_data[next_bpm].bpm/4;
-                    next_bpm += 1;
+                    float interval = noteTime[ch] * config.base_interval / 1000f;
+                    if (interval > 0) { 
+                        yield return new WaitWhile(() => nodeStill);
+                        yield return new WaitForSeconds(interval);
+                        yield return new WaitWhile(() => nodeStill);
+                    }
+                    else
+                        Debug.Log("error interval");
+                    index++;
                 }
+                else if (ch == '>')
+                {
+                    if (next_bpm < AnalyzeMid.bpm_data.Count)
+                    {
+                        config.base_interval = 60000 / AnalyzeMid.bpm_data[next_bpm].bpm / 4;
+                        next_bpm += 1;
+                    }
+                    index++;
+                }
+                else
+                    index++;
             }
         }
-
         while (managerNote.Count != 0)
             yield return null;  // 每帧继续检查
         yield return new WaitForSeconds(3);  // 等待 3 秒

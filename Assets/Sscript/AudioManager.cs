@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 public class KeyNotePlayer : MonoBehaviour
 {
     private List<AudioSource> audioSources = new List<AudioSource>();
-    private int poolSize = 20;
+    private int poolSize = 200;
     private int currentIndex = 0;
 
     public KeyNotePlayer(GameObject parentObject)
@@ -40,7 +40,7 @@ public class KeyNotePlayer : MonoBehaviour
             AudioClip clip = AudioManager.Instance.audioClips[noteKey];
             AudioSource source = GetNextAudioSource();
             source.PlayOneShot(clip);
-            Debug.Log("播放音符: " + clip.name);
+            //Debug.Log("播放音符: " + clip.name);
         }
         else
         {
@@ -114,7 +114,7 @@ public class AudioManager : MonoBehaviour
                 AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
                 clip.name = Path.GetFileNameWithoutExtension(path);
                 audioClips[key] = clip;
-                Debug.Log($"音符 {key} 的音频已加载并存储。");
+                //Debug.Log($"音符 {key} 的音频已加载并存储。");
             }
         }
     }

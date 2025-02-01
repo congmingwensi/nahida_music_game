@@ -14,12 +14,13 @@ using UnityEngine.UIElements;
 using Unity.VisualScripting;
 using Sanford.Multimedia.Midi;
 using YamlDotNet.Core.Tokens;
+using System.Linq;
 
 public class AnalyzeMid : MonoBehaviour
 {
     public static int mid_start=2;
     public static List<(int bpm, int ticks)> bpm_data = new List<(int bpm, int ticks)>();
-    public static List<string> MidKeyList = new List<string> { 
+    public static List<string> MidKeyList = new List<string> {
         "Z", "z", "X", "x", "C", "V", "v", "B", "b", "N", "n", "M",
         "A", "a", "S", "s", "D", "F", "f", "G", "g", "H", "h", "J",
         "Q", "q", "W", "w", "E", "R", "r", "T", "t", "Y", "y", "U",
@@ -155,10 +156,17 @@ public class AnalyzeMid : MonoBehaviour
                     {
                         if (channelMessage.Command == ChannelCommand.NoteOn && channelMessage.Data2 > 0)
                             mid_data.Add((midiEvent.AbsoluteTicks, channelMessage.Data1));
-                        sanfor_mid_content += $"\n ticks:{midiEvent.AbsoluteTicks},key:{channelMessage.Data1} Data2:{channelMessage.Data2}";
+                        sanfor_mid_content += $"ticks:{midiEvent.AbsoluteTicks},key:{channelMessage.Data1} Data2:{channelMessage.Data2} ";
                     }
                 }
             }
+            mid_data.Sort((a, b) => a.ticks.CompareTo(b.ticks));
+            mid_data = mid_data
+            .GroupBy(x => x.ticks) // 按ticks分组
+            .Select(g => (ticks: g.Key, key_numbers: g.Select(x => x.key_number).Distinct())) // 对每组的key_number去重
+            .SelectMany(g => g.key_numbers.Select(kn => (g.ticks, kn))) // 扁平化，重构成(ticks, key_number)形式
+            .OrderBy(x => x.ticks) // 最终按ticks排序
+            .ToList();
             Debug.Log($"sanfor_mid_content:{sanfor_mid_content}");
             return mid_data;
         }

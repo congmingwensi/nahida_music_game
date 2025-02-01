@@ -1,6 +1,9 @@
-base_interval: 90
+base_interval: 125
 et: 1000
-minimum_distance: 3
+minimum_distance: 1
 max_overpressure: 1
-offset: 1
-bear_tempo: 6
+overpressure_probability: 0.001
+offset: 0
+bear_tempo: 10
+mid_start: 2
+slice_mid: false
