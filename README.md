@@ -33,4 +33,7 @@ trans_image是转场图
 后续预计 可以根据目录写一个前端，玩家可以自行选择不同目录的谱面来读取
 可以自行设计不同皮肤目录来读取（还没做）
 
-游戏游完视频见：https://www.youtube.com/watch?v=wIeMJJBGZXs
+游戏游完视频见：[https://www.youtube.com/watch?v=wIeMJJBGZXs](https://www.youtube.com/watch?v=gT4zYMQvlWM)
+
+下载包：链接：https://pan.quark.cn/s/749e590e70bf
+提取码：pGMk
