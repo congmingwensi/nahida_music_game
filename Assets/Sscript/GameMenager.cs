@@ -13,10 +13,10 @@ using UnityEngine.SceneManagement;
 public class GameMenager : MonoBehaviour
 {
     public static GameMenager instance;
-    public AudioSource audioSource; //¶ÁÈ¡ÎÄ¼şºó£¬ÓÃÓÚ´æ´¢ÒôÆµ
-    public string sheetMusic;//Æ×Ãæ
-    private bool startPlaying;//Æ×ÃæÒôÀÖ
-    public string[] WheezeList;//½¿´­ÎÄ¼şÁĞ±í
+    public AudioSource audioSource; //è¯»å–æ–‡ä»¶åï¼Œç”¨äºå­˜å‚¨éŸ³é¢‘
+    public string sheetMusic;//è°±é¢
+    private bool startPlaying;//è°±é¢éŸ³ä¹
+    public string[] WheezeList;//å¨‡å–˜æ–‡ä»¶åˆ—è¡¨
     
     private int CurrentScore;
     public int scorePrefict = 100;
@@ -103,8 +103,8 @@ public class GameMenager : MonoBehaviour
 
     private Dictionary<char, GameObject> noteDictionary;
     private Dictionary<char, Vector3> noteLocation;
-    private int currentOrder = Int32.MaxValue;//¿ØÖÆnodeÏÔÊ¾ÓÅÏÈ¼¶£¬´Óint×î´óÖµµİ¼õ
-    private Dictionary<char, float> noteTime;//Æ×ÃæÎÄ¼şµÄÊ±¼ä¼ä¸ô·û
+    private int currentOrder = Int32.MaxValue;//æ§åˆ¶nodeæ˜¾ç¤ºä¼˜å…ˆçº§ï¼Œä»intæœ€å¤§å€¼é€’å‡
+    private Dictionary<char, float> noteTime;//è°±é¢æ–‡ä»¶çš„æ—¶é—´é—´éš”ç¬¦
     public Dictionary<char, string> noteAudio;
     private bool nodeStill;
     private float stillTime = 0;
@@ -112,7 +112,7 @@ public class GameMenager : MonoBehaviour
     private Dictionary<char, AudioSource> playingNotes = new Dictionary<char, AudioSource>();
     CharacterControl character;
     
-    public Dictionary<char, KeyNotePlayer> notePlayers = new Dictionary<char, KeyNotePlayer>();  // Ã¿¸öÇÙ¼üÒ»¸ö²¥·ÅÆ÷
+    public Dictionary<char, KeyNotePlayer> notePlayers = new Dictionary<char, KeyNotePlayer>();  // æ¯ä¸ªç´é”®ä¸€ä¸ªæ’­æ”¾å™¨
     public AudioSource audioSourcePrefab;
     private HashSet<KeyCode> processedKeys = new HashSet<KeyCode>();
     private Dictionary<KeyCode, bool> previousKeyStates = new Dictionary<KeyCode, bool>();
@@ -192,7 +192,7 @@ public class GameMenager : MonoBehaviour
         currentMultiplier = 1;
         scoreText.text = "Score:0";
         managerNote = new CharGameObjectQueue();
-        KeyCode[] keys = new KeyCode[] {//ĞèÒª¶ÔÃ¿¸ökeycodeµÄvalueÉú³ÉÒ»¸öNodeObject list¶ÔÏó¡£²»È»Ã»°ì·¨°Ñµ¥¸öNodeObjectÌí¼Ó½øÈ¥
+        KeyCode[] keys = new KeyCode[] {//éœ€è¦å¯¹æ¯ä¸ªkeycodeçš„valueç”Ÿæˆä¸€ä¸ªNodeObject listå¯¹è±¡ã€‚ä¸ç„¶æ²¡åŠæ³•æŠŠå•ä¸ªNodeObjectæ·»åŠ è¿›å»
         KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B,
         KeyCode.N, KeyCode.M, KeyCode.A, KeyCode.S, KeyCode.D,
         KeyCode.F, KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.Q,
@@ -202,20 +202,20 @@ public class GameMenager : MonoBehaviour
         KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.I,
         KeyCode.O, KeyCode.K, KeyCode.L
         };
-        buttonMap = new Dictionary<KeyCode, ButtonController>(); //key:button ÓÃkey¿ØÖÆ¶ÔÓ¦µÄbutton×ö³öÒ»Ğ©ĞĞÎª
+        buttonMap = new Dictionary<KeyCode, ButtonController>(); //key:button ç”¨keyæ§åˆ¶å¯¹åº”çš„buttonåšå‡ºä¸€äº›è¡Œä¸º
         ButtonController[] buttons = FindObjectsOfType<ButtonController>();
         foreach (ButtonController button in buttons)
         {
             buttonMap[button.keyToPress] = button;
         }
-        foreach (char note in "ZzXxCVvBbNnMAaSsDFfGgHhJQqWwERrTtYyU1!2@34$5%6^78*9(0IiOoKkL")  // Õë¶ÔÃ¿¸öÒô·û
+        foreach (char note in "ZzXxCVvBbNnMAaSsDFfGgHhJQqWwERrTtYyU1!2@34$5%6^78*9(0IiOoKkL")  // é’ˆå¯¹æ¯ä¸ªéŸ³ç¬¦
         {
             GameObject audioObject = new GameObject("NotePlayer_" + note);
             audioObject.transform.SetParent(transform);
             KeyNotePlayer player = new KeyNotePlayer(audioObject);
             notePlayers[note] = player;
         }
-        noteDictionary = new Dictionary<char, GameObject>//°´¼ü¶ÔÓ¦µÄÔ¤ÖÆ¼ş¡£¶ÁÈ¡Æ×ÃæÎÄ¼şºó£¬Éú³É¶ÔÓ¦Ô¤ÖÆ¼ş
+        noteDictionary = new Dictionary<char, GameObject>//æŒ‰é”®å¯¹åº”çš„é¢„åˆ¶ä»¶ã€‚è¯»å–è°±é¢æ–‡ä»¶åï¼Œç”Ÿæˆå¯¹åº”é¢„åˆ¶ä»¶
         {
             {'Z', NoteZ},
             {'z', NoteZ},
@@ -278,7 +278,7 @@ public class GameMenager : MonoBehaviour
             {'k', NoteK},
             {'L', NoteL}
         };
-        noteLocation = new Dictionary<char, Vector3> //²»Í¬Òô·ûÉú³ÉµÄ³õÊ¼Î»ÖÃ£¬Ö÷ÒªÊÇxÖá²»Í¬
+        noteLocation = new Dictionary<char, Vector3> //ä¸åŒéŸ³ç¬¦ç”Ÿæˆçš„åˆå§‹ä½ç½®ï¼Œä¸»è¦æ˜¯xè½´ä¸åŒ
         {
             { 'Z',new Vector3(-9.65f, 11.5f, 0f)},
             { 'z',new Vector3(-9.65f, 11.5f, 0f)},
@@ -345,7 +345,7 @@ public class GameMenager : MonoBehaviour
             { 'k',new Vector3(9.10f, 11.5f, 0f)},
             { 'L',new Vector3(9.68f, 11.5f, 0f)},
         };
-        noteTime = new Dictionary<char, float>//Æ×ÃæÎÄ¼şµÄÊ±¼ä¼ä¸ô·û
+        noteTime = new Dictionary<char, float>//è°±é¢æ–‡ä»¶çš„æ—¶é—´é—´éš”ç¬¦
         {
             { '.', 0.5f},
             { '=', 1 },
@@ -354,7 +354,7 @@ public class GameMenager : MonoBehaviour
         };
        
         
-        sheetMusic = Path.Combine(Application.streamingAssetsPath, "SheetMusic");//¶ÁÈ¡Æ×ÃæÎÄ¼ş
+        sheetMusic = Path.Combine(Application.streamingAssetsPath, "SheetMusic");//è¯»å–è°±é¢æ–‡ä»¶
         string FileSheet = sheetMusic + "/test_sheet_music.txt";
         string FileConfig = sheetMusic + "/test_sheet_music.yaml";
         StartCoroutine(LoadAndPlay(FileSheet, FileConfig));
@@ -374,10 +374,10 @@ void Update()
             if (processedKeys.Contains(expiredKey.Key))
             {
                 processedKeys.Remove(expiredKey.Key);
-                //Debug.Log($"°´¼ü {expiredKey.Key} ³¬Ê±£¬´Ó processedKeys ÖĞÒÆ³ı");
+                //Debug.Log($"æŒ‰é”® {expiredKey.Key} è¶…æ—¶ï¼Œä» processedKeys ä¸­ç§»é™¤");
             }
         }
-        CheckForKeyPress(KeyCode.Z);//²»Í£µØ¼ì²â°´¼ü°´ÏÂ
+        CheckForKeyPress(KeyCode.Z);//ä¸åœåœ°æ£€æµ‹æŒ‰é”®æŒ‰ä¸‹
         CheckForKeyPress(KeyCode.X);
         CheckForKeyPress(KeyCode.C);
         CheckForKeyPress(KeyCode.V);
@@ -417,18 +417,18 @@ void Update()
         CheckForKeyPress(KeyCode.K);
         CheckForKeyPress(KeyCode.L);
 
-        if (!startPlaying)//¼ì²âÒôÆµÎ´²¥·Å£¬²¥·ÅÒôÆµ
+        if (!startPlaying)//æ£€æµ‹éŸ³é¢‘æœªæ’­æ”¾ï¼Œæ’­æ”¾éŸ³é¢‘
         {
             startPlaying = true;
             string[] sheet_music_path = GetAudioFiles(sheetMusic);
             if (sheet_music_path.Length > 0)
             {
-                StartCoroutine(PlayBgm(sheet_music_path[0])); // ²¥·ÅµÚÒ»¸öÒôÆµÎÄ¼ş
+                StartCoroutine(PlayBgm(sheet_music_path[0])); // æ’­æ”¾ç¬¬ä¸€ä¸ªéŸ³é¢‘æ–‡ä»¶
             }
         }
     }
 
-    public void PlayNote(char key='\0') //ÒÆ¶¯¶Ë²¥·Å°´¼üÒô
+    public void PlayNote(char key='\0') //ç§»åŠ¨ç«¯æ’­æ”¾æŒ‰é”®éŸ³
     {
         if (WheezeList.Length!=0)
         {
@@ -505,7 +505,7 @@ void Update()
             case 'k': return KeyCode.K;
             case 'L': return KeyCode.L;
 
-            default: return KeyCode.None; // ÆäËûÇé¿ö
+            default: return KeyCode.None; // å…¶ä»–æƒ…å†µ
         }
     }
     char keyCodeToChar(KeyCode keycode){
@@ -551,12 +551,12 @@ void Update()
             case KeyCode.K: return 'K';
             case KeyCode.L: return 'L';
 
-            default: return '\0'; // ÆäËûÇé¿ö
+            default: return '\0'; // å…¶ä»–æƒ…å†µ
         }
     }
     public void CheckForKeyPress(KeyCode key, bool key_down = false)
     {
-        // ¼ì²é°´¼üÃüÖĞ·¶Î§
+        // æ£€æŸ¥æŒ‰é”®å‘½ä¸­èŒƒå›´
         void CheckValueRange(KeyCode key, float value)
         {
             if (buttonMap.TryGetValue(key, out ButtonController buttonController))
@@ -579,30 +579,30 @@ void Update()
             }
         }
 
-        // ´¦Àí°´¼ü°´ÏÂÊÂ¼ş
+        // å¤„ç†æŒ‰é”®æŒ‰ä¸‹äº‹ä»¶
         int ProcessingPress(KeyValuePair<char, NoteObject> temp_pare)
         {
             int factor = 0;
             if (managerNote.Count > 0)
             {
-                // ÅĞ¶Ï°´¼üÊÇ·ñÒÑ±»´¦Àí¹ı£¬±ÜÃâÖØ¸´
+                // åˆ¤æ–­æŒ‰é”®æ˜¯å¦å·²è¢«å¤„ç†è¿‡ï¼Œé¿å…é‡å¤
                 if (!GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
                 {
-                    GlobalKeyPresses.KeyPresses.Add(new KeyPressInfo(key, Time.time)); // ´æ´¢°´¼üÊ±¼ä
-                    //Debug.Log($"Ìí¼Ó£º{key.ToString()}£¡µ±Ç°¶ÓÁĞ£º{GlobalKeyPresses.PrintAllKeysAsOneString()}");
+                    GlobalKeyPresses.KeyPresses.Add(new KeyPressInfo(key, Time.time)); // å­˜å‚¨æŒ‰é”®æ—¶é—´
+                    //Debug.Log($"æ·»åŠ ï¼š{key.ToString()}ï¼å½“å‰é˜Ÿåˆ—ï¼š{GlobalKeyPresses.PrintAllKeysAsOneString()}");
                     factor = 1;
                 }
-                // ¼ì²é°´¼üÊÇ·ñÓëÒô·ûÆ¥Åä£¬ÔÊĞí´íÎ»Æ¥Åä
+                // æ£€æŸ¥æŒ‰é”®æ˜¯å¦ä¸éŸ³ç¬¦åŒ¹é…ï¼Œå…è®¸é”™ä½åŒ¹é…
                 if (temp_pare.Value.canBePressed && GlobalKeyPresses.KeyPresses.Any(keyPress => charToKeycode(temp_pare.Key) == keyPress.Key))
                 {
-                    // ÒÆ³ıÒÑ¾­´¦ÀíµÄ°´¼ü
+                    // ç§»é™¤å·²ç»å¤„ç†çš„æŒ‰é”®
                     GlobalKeyPresses.KeyPresses.RemoveWhere(keyPress => charToKeycode(temp_pare.Key) == keyPress.Key);
-                    //Debug.Log($"É¾µôkeyPress.KeyÖ®ºó£º{temp_pare.Key},»¹Ê£°´¼ü£º{GlobalKeyPresses.PrintAllKeysAsOneString()}");
+                    //Debug.Log($"åˆ æ‰keyPress.Keyä¹‹åï¼š{temp_pare.Key},è¿˜å‰©æŒ‰é”®ï¼š{GlobalKeyPresses.PrintAllKeysAsOneString()}");
                     KeyCode processedKey = charToKeycode(temp_pare.Key);
                     if (processedKeys.Contains(processedKey))
                     {
                         processedKeys.Remove(processedKey);
-                        //Debug.Log($"´Ó processedKeys ÖĞÒÆ³ı°´¼ü£º{processedKey}");
+                        //Debug.Log($"ä» processedKeys ä¸­ç§»é™¤æŒ‰é”®ï¼š{processedKey}");
                     }
                     NoteObject noteToHit = temp_pare.Value;
                     CheckValueRange(key, noteToHit.HitNote());
@@ -613,7 +613,7 @@ void Update()
             return factor;
         }
 
-        // ¼ì²â°´¼ü°´ÏÂ
+        // æ£€æµ‹æŒ‰é”®æŒ‰ä¸‹
         bool keyDownThisFrame = Input.GetKeyDown(key);
         bool keyUpThisFrame = Input.GetKeyUp(key);
         bool keyIsPressed = Input.GetKey(key);
@@ -624,14 +624,14 @@ void Update()
         bool wasKeyDown = previousKeyStates[key];
         if ((keyIsPressed && !wasKeyDown) || key_down || GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
         {
-            //Debug.Log($"Frame: {Time.frameCount}, Key: {key}, IsKeyDown: {keyDownThisFrame}, WasKeyDown: {wasKeyDown}, ÒÑ°´ÏÂ: {string.Join(", ", processedKeys)}");
+            //Debug.Log($"Frame: {Time.frameCount}, Key: {key}, IsKeyDown: {keyDownThisFrame}, WasKeyDown: {wasKeyDown}, å·²æŒ‰ä¸‹: {string.Join(", ", processedKeys)}");
             if (!processedKeys.Contains(key))
             {
                 processedKeys.Add(key);
                 KeyValuePair<char, NoteObject> temp_pare = managerNote.GetTopElement();
-                //Debug.Log($"½øÈë Key: {key}, GetKeyDown: {keyDownThisFrame}, GetKeyUp: {keyUpThisFrame}, GetKey: {keyIsPressed}£¬ÒÑ°´ÏÂ:{string.Join(", ", processedKeys)}\n" +
-                //    $"µ±Ç°¶ÓÁĞ£º{GlobalKeyPresses.PrintAllKeysAsOneString()},µ±Ç°¶Ó¶¥£º{temp_pare.Key}");
-                NoteAuto(false);  // ÔİÍ£×Ô¶¯²¥·Å
+                //Debug.Log($"è¿›å…¥ Key: {key}, GetKeyDown: {keyDownThisFrame}, GetKeyUp: {keyUpThisFrame}, GetKey: {keyIsPressed}ï¼Œå·²æŒ‰ä¸‹:{string.Join(", ", processedKeys)}\n" +
+                //    $"å½“å‰é˜Ÿåˆ—ï¼š{GlobalKeyPresses.PrintAllKeysAsOneString()},å½“å‰é˜Ÿé¡¶ï¼š{temp_pare.Key}");
+                NoteAuto(false);  // æš‚åœè‡ªåŠ¨æ’­æ”¾
                 int factor = ProcessingPress(temp_pare);
                 if (factor == 2)
                 {
@@ -648,17 +648,17 @@ void Update()
         if (!keyIsPressed && wasKeyDown && processedKeys.Contains(key))
         {
             processedKeys.Remove(key);
-            //Debug.Log($"Key: {key} ÒÑËÉ¿ª£¬´Ó processedKeys ÖĞÒÆ³ı");
+            //Debug.Log($"Key: {key} å·²æ¾å¼€ï¼Œä» processedKeys ä¸­ç§»é™¤");
         }
         previousKeyStates[key] = keyIsPressed;
     }
 
-    public void RemoveNoteFromTrack(char trackKey)//½«ÁĞ±íÖĞµÄnodeÉ¾³ı£¬ÒÑ°´ÏÂ»òmissÊ±µ÷ÓÃ
+    public void RemoveNoteFromTrack(char trackKey)//å°†åˆ—è¡¨ä¸­çš„nodeåˆ é™¤ï¼Œå·²æŒ‰ä¸‹æˆ–missæ—¶è°ƒç”¨
     {
         if (managerNote.Count != 0 && managerNote.GetTopElement().Key == trackKey)
             managerNote.Dequeue();
     }
-    public void NoteHit() //ÏÔÊ¾·ÖÊıºÍcombo
+    public void NoteHit() //æ˜¾ç¤ºåˆ†æ•°å’Œcombo
     {
         combo++;
         if (combo > 100 && combo < 300)
@@ -677,7 +677,7 @@ void Update()
         }
         scoreText.text = "Score:" + CurrentScore;
     }
-    public void NoteMissed()//missÊ±¸Ä±äcomboºÍcombo¼Ó³É
+    public void NoteMissed()//missæ—¶æ”¹å˜comboå’ŒcomboåŠ æˆ
     {
         combo = 0;
         currentMultiplier = 1;
@@ -737,22 +737,7 @@ void Update()
         public int mid_start { get; set; }
         public bool slice_mid { get; set; }
     }
-    IEnumerator LoadAndPlay(string sheet_path, string config_path) //¶ÁÈ¡Æ×ÃæºÍyamlÎÄ¼şÄÚÈİ
-    {
-        string[] get_content(string base_sheet, string base_config)
-        {
-            string sheet_content = get_file_context(base_sheet);
-            string config_content = get_file_context(base_config);
-            return new string[] { sheet_content, config_content };
-        }
-
-        string get_file_context(string file_path)
-        {
-#if UNITY_ANDROID && !UNITY_EDITOR //±¾À´Ïë×ö°²×¿¶Ë°´¼üÊÊÅä£¬ºóÀ´·¢ÏÖ£¬°²×°Ì«ÄÑ¶ÁÈ¡±¾µØÎÄ¼ş¼Ğ£¬ËùÒÔ´Ë¹¦ÄÜÔİÊ±Ã»ÓÃ¡£elseÊÇPc¶Ë¶ÁÈ¡ÎÄ¼ş´úÂë
-        string full_path = Path.Combine("jar:file://" + Application.dataPath + "!/assets/", file_path);
-        UnityWebRequest request = UnityWebRequest.Get(full_path);
-        yield return request.SendWebRequest();
-        if (request.isNetworkError || request.isHttpError)
+            return File.ReadAllText(file_path);
         {
             Debug.LogError("Error loading file: " + request.error);
         }
@@ -766,7 +751,7 @@ void Update()
 #endif
         }
 
-        void SpawnNote(char ch, bool harbor, float bear_tempo)//¸ù¾İ¹Ì¶¨×Ö·ûÉú³É¶ÔÓ¦Ô¤ÖÆ¼ş
+        void SpawnNote(char ch, bool harbor, float bear_tempo)//æ ¹æ®å›ºå®šå­—ç¬¦ç”Ÿæˆå¯¹åº”é¢„åˆ¶ä»¶
         {
             ch = (!"zxvbnasfghqwrty!@$%^*(iok".Contains(ch)) &&char.IsLetter(ch) ? char.ToUpper(ch) : ch;
 
@@ -774,7 +759,7 @@ void Update()
             {
                 GameObject temp_node = Instantiate(notePrefab, notePosition, Quaternion.identity) as GameObject;
                 SpriteRenderer temp_renderer = temp_node.GetComponent<SpriteRenderer>();
-                if (harbor)//ÉèÖÃÒş²Ø°´¼üµÄtag¼°°ëÍ¸Ã÷
+                if (harbor)//è®¾ç½®éšè—æŒ‰é”®çš„tagåŠåŠé€æ˜
                 {
                     temp_node.tag = "Harbor";
                     var color = temp_renderer.color;
@@ -812,21 +797,21 @@ void Update()
         //Debug.Log($"config result:{config.base_interval},{config.et}");
         string lines = SpectrogramSimplifier.SimplifySpectrogram(sheet_content, config.minimum_distance, config.max_overpressure,config.overpressure_probability);
         lines = SpectrogramSimplifier.MapGroups(lines, config.offset);
-        string temp_sheet_music_path = Path.Combine(Application.streamingAssetsPath, "SheetMusic") + "/temp_sheet_music.txt";//ÁÙÊ±Æ×ÃæÎÄ¼ş
+        string temp_sheet_music_path = Path.Combine(Application.streamingAssetsPath, "SheetMusic") + "/temp_sheet_music.txt";//ä¸´æ—¶è°±é¢æ–‡ä»¶
         using (StreamWriter temp_sheet_writer = new StreamWriter(temp_sheet_music_path))
         {
-            temp_sheet_writer.WriteLine($"¼ò»¯ºóÆ×Ãæ£º\n{lines}");
+            temp_sheet_writer.WriteLine($"ç®€åŒ–åè°±é¢ï¼š\n{lines}");
             string piano_key = "";
             foreach (char ch in lines)
                 piano_key += noteAudio.ContainsKey(ch) ? noteAudio[ch] : ch.ToString();
-            temp_sheet_writer.WriteLine($"\nÇÙ¼ü¶ÔÓ¦Æ×£º{piano_key}");
+            temp_sheet_writer.WriteLine($"\nç´é”®å¯¹åº”è°±ï¼š{piano_key}");
         }
         int next_bpm = 1;
         int index = 0;
         while (index < lines.Length)
         {
             List<(char noteChar, bool harborFlag)> simultaneousNotes = new List<(char noteChar, bool harborFlag)>();
-            bool tempHarborFlag = false; // ÁÙÊ±µÄ harborFlag£¬ÓÃÓÚÏÂÒ»¸öÒô·û
+            bool tempHarborFlag = false; // ä¸´æ—¶çš„ harborFlagï¼Œç”¨äºä¸‹ä¸€ä¸ªéŸ³ç¬¦
 
             // Collect simultaneous notes
             while (index < lines.Length)
@@ -834,14 +819,14 @@ void Update()
                 char ch = lines[index];
                 if (ch == '~')
                 {
-                    tempHarborFlag = true; // ÉèÖÃÁÙÊ±µÄ harborFlag
+                    tempHarborFlag = true; // è®¾ç½®ä¸´æ—¶çš„ harborFlag
                     index++;
                 }
                 else if (char.IsLetterOrDigit(ch) || "!@$%^*(".Contains(ch))
                 {
-                    // ½«Òô·ûºÍ¶ÔÓ¦µÄ harborFlag Ìí¼Óµ½ÁĞ±íÖĞ
+                    // å°†éŸ³ç¬¦å’Œå¯¹åº”çš„ harborFlag æ·»åŠ åˆ°åˆ—è¡¨ä¸­
                     simultaneousNotes.Add((ch, tempHarborFlag));
-                    tempHarborFlag = false; // ÖØÖÃÁÙÊ± harborFlag
+                    tempHarborFlag = false; // é‡ç½®ä¸´æ—¶ harborFlag
                     index++;
                 }
                 else
@@ -885,8 +870,8 @@ void Update()
             }
         }
         while (managerNote.Count != 0)
-            yield return null;  // Ã¿Ö¡¼ÌĞø¼ì²é
-        yield return new WaitForSeconds(3);  // µÈ´ı 3 Ãë
+            yield return null;  // æ¯å¸§ç»§ç»­æ£€æŸ¥
+        yield return new WaitForSeconds(3);  // ç­‰å¾… 3 ç§’
         SceneManager.LoadScene("front_page");
     }
 
@@ -899,7 +884,7 @@ void Update()
         return mp3Files.Concat(oggFiles).Concat(wavFiles).ToArray();
     }
 
-    IEnumerator PlayBgm(string filePath) //±³¾°ÒôÀÖ
+    IEnumerator PlayBgm(string filePath) //èƒŒæ™¯éŸ³ä¹
     {
         using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file://" + filePath, AudioType.UNKNOWN))
         {
@@ -923,7 +908,7 @@ void Update()
         string Wheeze_path = Path.Combine(Application.streamingAssetsPath, "SheetMusic/extra");
         if (Directory.Exists(Wheeze_path))
         {
-            // »ñÈ¡ËùÓĞÒôÆµÎÄ¼şÂ·¾¶
+            // è·å–æ‰€æœ‰éŸ³é¢‘æ–‡ä»¶è·¯å¾„
             if (Wheeze_path.Length > 0)
             {
                 string[] mp3Files = Directory.GetFiles(Wheeze_path, "*.mp3");
@@ -948,7 +933,7 @@ void Update()
     }
     private IEnumerator PlayAudioClip(string filePath, char key = '\0')
     {
-        // ¶ÔÂ·¾¶½øĞĞ URL ±àÂë£¬È·±£´¦ÀíÌØÊâ×Ö·û£¨Èç #£©
+        // å¯¹è·¯å¾„è¿›è¡Œ URL ç¼–ç ï¼Œç¡®ä¿å¤„ç†ç‰¹æ®Šå­—ç¬¦ï¼ˆå¦‚ #ï¼‰
         string url = "file://" + Uri.EscapeUriString(filePath);
 
         using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.UNKNOWN))
@@ -965,7 +950,7 @@ void Update()
                 AudioSource audioSource = gameObject.AddComponent<AudioSource>();
                 audioSource.clip = clip;
                 audioSource.Play();
-                // Ïú»ÙAudioSource×é¼şµ±ÒôÆµ²¥·ÅÍê±Ï
+                // é”€æ¯AudioSourceç»„ä»¶å½“éŸ³é¢‘æ’­æ”¾å®Œæ¯•
                 Destroy(audioSource, clip.length);
             }
         }
