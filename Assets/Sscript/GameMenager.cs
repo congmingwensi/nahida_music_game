@@ -18,6 +18,11 @@ public class GameMenager : MonoBehaviour
     private bool startPlaying;//谱面音乐
     public string[] WheezeList;//娇喘文件列表
     
+    // 谱面显示相关 - 用于在屏幕上滚动显示当前演奏的谱面
+    public static string OriginalSheetContent = "";  // 原始谱面内容（简化之前）
+    public static int CurrentSheetIndex = 0;         // 当前演奏位置（在原始谱面中的索引）
+    public static bool IsPlaying = false;            // 是否正在演奏
+    
     private int CurrentScore;
     public int scorePrefict = 100;
     public int scoreGood = 75;
@@ -788,6 +793,11 @@ void Update()
         string[] content_result = get_content(sheet_path, config_path);
         string sheet_content = content_result[0];
         string config_content = content_result[1];
+        
+        // 存储原始谱面内容用于显示
+        OriginalSheetContent = sheet_content;
+        CurrentSheetIndex = 0;
+        IsPlaying = true;
 
         var yamlDeserializer = new DeserializerBuilder()
                 .WithNamingConvention(UnderscoredNamingConvention.Instance) // Use underscored naming convention
@@ -808,6 +818,7 @@ void Update()
         }
         int next_bpm = 1;
         int index = 0;
+        int originalIndex = 0; // 跟踪原始谱面中的位置
         while (index < lines.Length)
         {
             List<(char noteChar, bool harborFlag)> simultaneousNotes = new List<(char noteChar, bool harborFlag)>();
@@ -837,6 +848,18 @@ void Update()
             foreach (var (noteChar, harbor) in simultaneousNotes)
             {
                 SpawnNote(noteChar, harbor, config.bear_tempo);
+                // 更新原始谱面位置：在原始谱面中查找对应的音符
+                while (originalIndex < sheet_content.Length)
+                {
+                    char origChar = sheet_content[originalIndex];
+                    originalIndex++;
+                    // 找到匹配的音符字符就停止
+                    if (char.IsLetterOrDigit(origChar) || "!@$%^*(".Contains(origChar))
+                    {
+                        CurrentSheetIndex = originalIndex;
+                        break;
+                    }
+                }
             }
 
             // Handle timing character
@@ -855,6 +878,12 @@ void Update()
                     else
                         Debug.Log("error interval");
                     index++;
+                    // 更新原始谱面位置：跳过时间符号
+                    while (originalIndex < sheet_content.Length && "-=+.".IndexOf(sheet_content[originalIndex]) != -1)
+                    {
+                        originalIndex++;
+                        CurrentSheetIndex = originalIndex;
+                    }
                 }
                 else if (ch == '>')
                 {
@@ -864,11 +893,18 @@ void Update()
                         next_bpm += 1;
                     }
                     index++;
+                    // 更新原始谱面位置：跳过BPM变化符号
+                    if (originalIndex < sheet_content.Length && sheet_content[originalIndex] == '>')
+                    {
+                        originalIndex++;
+                        CurrentSheetIndex = originalIndex;
+                    }
                 }
                 else
                     index++;
             }
         }
+        IsPlaying = false; // 演奏结束
         while (managerNote.Count != 0)
             yield return null;  // 每帧继续检查
         yield return new WaitForSeconds(3);  // 等待 3 秒
