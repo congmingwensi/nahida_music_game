@@ -5,27 +5,32 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro; // 支持 TextMeshPro
 
 /// <summary>
-/// SheetMusicSelector - 谱面选择器
+/// SheetMusicSelector - 谱面选择器（弹窗版）
 /// 
 /// 使用说明：
 /// 1. 在front_page场景中创建一个空的GameObject，命名为"SheetMusicSelector"
 /// 2. 将此脚本挂载到该GameObject上
-/// 3. 在场景中创建一个Canvas（如果没有的话）：
-///    - GameObject -> UI -> Canvas
-///    - 设置Canvas的Render Mode为"Screen Space - Overlay"
-/// 4. 在Canvas下创建一个ScrollView用于显示谱面列表：
-///    - GameObject -> UI -> Scroll View
+/// 3. 创建弹窗面板：
+///    - 在Canvas下创建一个Panel：GameObject -> UI -> Panel
+///    - 命名为"SheetMusicPopup"
+///    - 调整大小和位置（建议居中，适当大小）
+///    - 将Panel拖拽到本脚本的popupPanel字段
+/// 4. 在弹窗Panel内创建ScrollView：
+///    - 右键Panel -> UI -> Scroll View
 ///    - 将ScrollView的Content对象拖拽到本脚本的contentParent字段
-/// 5. 创建一个按钮预制件（Prefab）：
-///    - 在Canvas下创建一个Button：GameObject -> UI -> Button
-///    - 调整按钮大小（建议宽度400，高度60）
-///    - 将按钮拖拽到Assets/prefab文件夹创建预制件
+/// 5. 创建关闭按钮（可选）：
+///    - 在弹窗Panel内创建Button，文字设为"X"或"关闭"
+///    - 将按钮拖拽到本脚本的closeButton字段
+/// 6. 创建谱面按钮预制件：
+///    - 创建一个Button，调整大小（建议宽度400，高度60）
+///    - 拖拽到Assets/prefab创建预制件
 ///    - 将预制件拖拽到本脚本的buttonPrefab字段
-///    - 删除场景中的临时按钮
-/// 6. 可选：创建一个Text显示当前选择状态
-///    - 将Text对象拖拽到本脚本的statusText字段
+/// 7. 创建"选择谱面"按钮：
+///    - 在Canvas下创建一个按钮
+///    - 在按钮的OnClick事件中，绑定SheetMusicSelector的OpenPopup方法
 /// 
 /// 目录结构要求：
 /// - StreamingAssets/mid/     - 存放MIDI文件（.mid）
@@ -35,6 +40,9 @@ using UnityEngine.SceneManagement;
 public class SheetMusicSelector : MonoBehaviour
 {
     [Header("UI组件 - 需要在Inspector中绑定")]
+    [Tooltip("弹窗面板，包含整个选择界面")]
+    public GameObject popupPanel;
+    
     [Tooltip("ScrollView的Content对象，用于放置按钮列表")]
     public Transform contentParent;
     
@@ -43,6 +51,39 @@ public class SheetMusicSelector : MonoBehaviour
     
     [Tooltip("状态文本，显示当前选择的谱面（可选）")]
     public Text statusText;
+    
+    [Tooltip("关闭按钮（可选）")]
+    public Button closeButton;
+    
+    [Tooltip("选择谱面按钮（打开弹窗时隐藏）")]
+    public GameObject selectSheetButton;
+    
+    [Header("标签切换按钮")]
+    [Tooltip("MIDI标签按钮")]
+    public Button midiTabButton;
+    
+    [Tooltip("呱呱标签按钮")]
+    public Button guaTabButton;
+    
+    [Header("标签按钮颜色")]
+    [Tooltip("标签选中时的颜色")]
+    public Color tabSelectedColor = new Color(1f, 1f, 1f, 1f);
+    
+    [Tooltip("标签未选中时的颜色")]
+    public Color tabNormalColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+    
+    [Header("Base Interval 编辑（呱呱谱面用）")]
+    [Tooltip("Base Interval 编辑面板")]
+    public GameObject baseIntervalPanel;
+    
+    [Tooltip("Base Interval 输入框（普通InputField）")]
+    public InputField baseIntervalInput;
+    
+    [Tooltip("Base Interval 输入框（TMP版本，二选一）")]
+    public TMP_InputField baseIntervalInputTMP;
+    
+    [Tooltip("Base Interval 标签文本")]
+    public Text baseIntervalLabel;
     
     [Header("UI布局设置")]
     [Tooltip("按钮之间的垂直间距")]
@@ -77,6 +118,9 @@ public class SheetMusicSelector : MonoBehaviour
     private string midPath;
     private string guaPath;
     private string sheetMusicPath;
+    
+    // 当前显示的谱面类型（null表示显示全部）
+    private SheetType? currentFilter = null;
 
     void Start()
     {
@@ -94,7 +138,143 @@ public class SheetMusicSelector : MonoBehaviour
         // 生成UI
         GenerateUI();
         
+        // 默认隐藏弹窗和相关UI
+        if (popupPanel != null)
+        {
+            popupPanel.SetActive(false);
+        }
+        if (baseIntervalPanel != null)
+        {
+            baseIntervalPanel.SetActive(false);
+        }
+        
+        // 绑定关闭按钮事件
+        if (closeButton != null)
+        {
+            closeButton.onClick.AddListener(ClosePopup);
+        }
+        
+        // 绑定标签按钮事件
+        if (midiTabButton != null)
+        {
+            midiTabButton.onClick.AddListener(() => SwitchTab(SheetType.MIDI));
+        }
+        if (guaTabButton != null)
+        {
+            guaTabButton.onClick.AddListener(() => SwitchTab(SheetType.GUA));
+        }
+        
+        // 绑定 base_interval 输入框事件
+        if (baseIntervalInput != null)
+        {
+            baseIntervalInput.onEndEdit.AddListener(OnBaseIntervalChanged);
+        }
+        if (baseIntervalInputTMP != null)
+        {
+            baseIntervalInputTMP.onEndEdit.AddListener(OnBaseIntervalChanged);
+        }
+        
         UpdateStatus("请选择一个谱面");
+    }
+    
+    /// <summary>
+    /// 切换标签页
+    /// </summary>
+    public void SwitchTab(SheetType type)
+    {
+        currentFilter = type;
+        GenerateUI();
+        UpdateTabButtonColors();
+        
+        string typeName = type == SheetType.MIDI ? "MIDI" : "呱呱";
+        UpdateStatus($"显示 {typeName} 谱面");
+    }
+    
+    /// <summary>
+    /// 显示全部谱面
+    /// </summary>
+    public void ShowAllSheets()
+    {
+        currentFilter = null;
+        GenerateUI();
+        UpdateTabButtonColors();
+        UpdateStatus("显示全部谱面");
+    }
+    
+    /// <summary>
+    /// 更新标签按钮的颜色
+    /// </summary>
+    void UpdateTabButtonColors()
+    {
+        if (midiTabButton != null)
+        {
+            var colors = midiTabButton.colors;
+            colors.normalColor = (currentFilter == SheetType.MIDI) ? tabSelectedColor : tabNormalColor;
+            midiTabButton.colors = colors;
+        }
+        
+        if (guaTabButton != null)
+        {
+            var colors = guaTabButton.colors;
+            colors.normalColor = (currentFilter == SheetType.GUA) ? tabSelectedColor : tabNormalColor;
+            guaTabButton.colors = colors;
+        }
+    }
+    
+    /// <summary>
+    /// 打开谱面选择弹窗（绑定到"选择谱面"按钮）
+    /// </summary>
+    public void OpenPopup()
+    {
+        // 每次打开时刷新列表
+        ScanSheetMusic();
+        
+        // 默认显示 MIDI 谱面
+        currentFilter = SheetType.MIDI;
+        GenerateUI();
+        UpdateTabButtonColors();
+        
+        // 加载 base_interval 值
+        LoadBaseInterval();
+        
+        // 隐藏"选择谱面"按钮
+        if (selectSheetButton != null)
+        {
+            selectSheetButton.SetActive(false);
+        }
+        
+        // 显示弹窗和 base_interval 面板
+        if (popupPanel != null)
+        {
+            popupPanel.SetActive(true);
+        }
+        if (baseIntervalPanel != null)
+        {
+            baseIntervalPanel.SetActive(true);
+        }
+        UpdateStatus("显示 MIDI 谱面");
+    }
+    
+    /// <summary>
+    /// 关闭谱面选择弹窗
+    /// </summary>
+    public void ClosePopup()
+    {
+        // 隐藏弹窗和 base_interval 面板
+        if (popupPanel != null)
+        {
+            popupPanel.SetActive(false);
+        }
+        if (baseIntervalPanel != null)
+        {
+            baseIntervalPanel.SetActive(false);
+        }
+        
+        // 显示"选择谱面"按钮
+        if (selectSheetButton != null)
+        {
+            selectSheetButton.SetActive(true);
+        }
     }
 
     /// <summary>
@@ -126,15 +306,20 @@ public class SheetMusicSelector : MonoBehaviour
     {
         sheetList.Clear();
 
-        // 扫描MIDI文件
+        // 扫描MIDI文件（只扫描当前目录，排除子目录和.meta文件）
         if (Directory.Exists(midPath))
         {
-            string[] midFiles = Directory.GetFiles(midPath, "*.mid");
+            string[] midFiles = Directory.GetFiles(midPath, "*.mid", SearchOption.TopDirectoryOnly);
             foreach (string file in midFiles)
             {
+                // 跳过.meta文件和空文件名
+                string fileName = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrEmpty(fileName) || file.EndsWith(".meta"))
+                    continue;
+                    
                 SheetInfo info = new SheetInfo
                 {
-                    name = "[MIDI] " + Path.GetFileNameWithoutExtension(file),
+                    name = "[MIDI] " + fileName,
                     fullPath = file,
                     type = SheetType.MIDI
                 };
@@ -143,13 +328,17 @@ public class SheetMusicSelector : MonoBehaviour
             }
         }
 
-        // 扫描呱呱谱面文件
+        // 扫描呱呱谱面文件（只扫描当前目录，排除子目录和.meta文件）
         if (Directory.Exists(guaPath))
         {
-            string[] guaFiles = Directory.GetFiles(guaPath, "*.txt");
+            string[] guaFiles = Directory.GetFiles(guaPath, "*.txt", SearchOption.TopDirectoryOnly);
             foreach (string file in guaFiles)
             {
+                // 跳过.meta文件和空文件名
                 string baseName = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrEmpty(baseName) || file.EndsWith(".meta"))
+                    continue;
+                    
                 string yamlPath = Path.Combine(guaPath, baseName + ".yaml");
                 
                 SheetInfo info = new SheetInfo
@@ -190,18 +379,28 @@ public class SheetMusicSelector : MonoBehaviour
             Destroy(child.gameObject);
         }
 
+        // 根据过滤条件获取要显示的谱面列表
+        List<SheetInfo> filteredList = new List<SheetInfo>();
+        foreach (var sheet in sheetList)
+        {
+            if (currentFilter == null || sheet.type == currentFilter)
+            {
+                filteredList.Add(sheet);
+            }
+        }
+
         // 设置Content的大小
         RectTransform contentRect = contentParent.GetComponent<RectTransform>();
         if (contentRect != null)
         {
-            float totalHeight = sheetList.Count * (buttonHeight + buttonSpacing);
+            float totalHeight = filteredList.Count * (buttonHeight + buttonSpacing);
             contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, totalHeight);
         }
 
         // 为每个谱面创建按钮
-        for (int i = 0; i < sheetList.Count; i++)
+        for (int i = 0; i < filteredList.Count; i++)
         {
-            SheetInfo info = sheetList[i];
+            SheetInfo info = filteredList[i];
             
             // 实例化按钮
             GameObject buttonObj = Instantiate(buttonPrefab, contentParent);
@@ -217,11 +416,50 @@ public class SheetMusicSelector : MonoBehaviour
                 buttonRect.sizeDelta = new Vector2(-20, buttonHeight);
             }
 
-            // 设置按钮文本
+            // 设置按钮文本（同时支持普通Text和TextMeshPro）
             Text buttonText = buttonObj.GetComponentInChildren<Text>();
+            TMP_Text tmpText = buttonObj.GetComponentInChildren<TMP_Text>();
+            
             if (buttonText != null)
             {
                 buttonText.text = info.name;
+                // 修复长文件名显示问题
+                buttonText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                buttonText.verticalOverflow = VerticalWrapMode.Overflow;
+                buttonText.resizeTextForBestFit = true;
+                buttonText.resizeTextMinSize = 10;
+                buttonText.resizeTextMaxSize = 24;
+                buttonText.alignment = TextAnchor.MiddleLeft;
+                
+                // 强制设置 RectTransform 为左对齐
+                RectTransform textRect = buttonText.GetComponent<RectTransform>();
+                if (textRect != null)
+                {
+                    textRect.anchorMin = new Vector2(0, 0);
+                    textRect.anchorMax = new Vector2(1, 1);
+                    textRect.offsetMin = new Vector2(10, 0);  // 左边距 10
+                    textRect.offsetMax = new Vector2(-10, 0); // 右边距 10
+                }
+            }
+            else if (tmpText != null)
+            {
+                tmpText.text = info.name;
+                // 修复长文件名显示问题
+                tmpText.overflowMode = TextOverflowModes.Ellipsis;
+                tmpText.enableAutoSizing = true;
+                tmpText.fontSizeMin = 10;
+                tmpText.fontSizeMax = 24;
+                tmpText.alignment = TextAlignmentOptions.Left;
+                
+                // 强制设置 RectTransform 为左对齐
+                RectTransform textRect = tmpText.GetComponent<RectTransform>();
+                if (textRect != null)
+                {
+                    textRect.anchorMin = new Vector2(0, 0);
+                    textRect.anchorMax = new Vector2(1, 1);
+                    textRect.offsetMin = new Vector2(10, 0);  // 左边距 10
+                    textRect.offsetMax = new Vector2(-10, 0); // 右边距 10
+                }
             }
             
             // 设置按钮颜色
@@ -241,9 +479,20 @@ public class SheetMusicSelector : MonoBehaviour
         }
 
         // 如果没有谱面，显示提示
-        if (sheetList.Count == 0)
+        if (filteredList.Count == 0)
         {
-            UpdateStatus("未找到谱面文件\n请将MIDI文件放入StreamingAssets/mid/\n或将呱呱谱面放入StreamingAssets/gua/");
+            if (currentFilter == SheetType.MIDI)
+            {
+                UpdateStatus("未找到MIDI谱面\n请将MIDI文件放入StreamingAssets/mid/");
+            }
+            else if (currentFilter == SheetType.GUA)
+            {
+                UpdateStatus("未找到呱呱谱面\n请将呱呱谱面放入StreamingAssets/gua/");
+            }
+            else
+            {
+                UpdateStatus("未找到谱面文件\n请将MIDI文件放入StreamingAssets/mid/\n或将呱呱谱面放入StreamingAssets/gua/");
+            }
         }
     }
 
@@ -267,6 +516,9 @@ public class SheetMusicSelector : MonoBehaviour
             }
 
             UpdateStatus($"已加载: {info.name}\n即将开始游戏...");
+            
+            // 关闭弹窗
+            ClosePopup();
             
             // 延迟加载游戏场景
             StartCoroutine(LoadGameSceneDelayed(1.5f));
@@ -365,4 +617,141 @@ public class SheetMusicSelector : MonoBehaviour
         GenerateUI();
         UpdateStatus("谱面列表已刷新");
     }
+    
+    #region Base Interval 编辑功能
+    
+    /// <summary>
+    /// 从 yaml 文件加载 base_interval 值
+    /// </summary>
+    void LoadBaseInterval()
+    {
+        string yamlPath = Path.Combine(sheetMusicPath, "test_sheet_music.yaml");
+        
+        if (File.Exists(yamlPath))
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(yamlPath);
+                foreach (string line in lines)
+                {
+                    if (line.StartsWith("base_interval:"))
+                    {
+                        string value = line.Substring("base_interval:".Length).Trim();
+                        SetBaseIntervalInputValue(value);
+                        Debug.Log($"读取 base_interval: {value}");
+                        return;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"读取 yaml 文件失败: {e.Message}");
+            }
+        }
+        
+        // 默认值
+        SetBaseIntervalInputValue("125");
+    }
+    
+    /// <summary>
+    /// 设置输入框的值
+    /// </summary>
+    void SetBaseIntervalInputValue(string value)
+    {
+        if (baseIntervalInput != null)
+        {
+            baseIntervalInput.text = value;
+        }
+        if (baseIntervalInputTMP != null)
+        {
+            baseIntervalInputTMP.text = value;
+        }
+    }
+    
+    /// <summary>
+    /// 获取输入框的值
+    /// </summary>
+    string GetBaseIntervalInputValue()
+    {
+        if (baseIntervalInput != null)
+        {
+            return baseIntervalInput.text;
+        }
+        if (baseIntervalInputTMP != null)
+        {
+            return baseIntervalInputTMP.text;
+        }
+        return "125";
+    }
+    
+    /// <summary>
+    /// 当 base_interval 输入框值改变时调用
+    /// </summary>
+    void OnBaseIntervalChanged(string newValue)
+    {
+        // 验证输入是否为有效数字
+        if (int.TryParse(newValue, out int interval))
+        {
+            SaveBaseInterval(interval);
+            UpdateStatus($"base_interval 已更新为: {interval}");
+        }
+        else
+        {
+            UpdateStatus("请输入有效的数字");
+            LoadBaseInterval(); // 恢复原值
+        }
+    }
+    
+    /// <summary>
+    /// 保存 base_interval 到 yaml 文件
+    /// </summary>
+    void SaveBaseInterval(int value)
+    {
+        string yamlPath = Path.Combine(sheetMusicPath, "test_sheet_music.yaml");
+        
+        try
+        {
+            if (File.Exists(yamlPath))
+            {
+                string[] lines = File.ReadAllLines(yamlPath);
+                bool found = false;
+                
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (lines[i].StartsWith("base_interval:"))
+                    {
+                        lines[i] = $"base_interval: {value}";
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (found)
+                {
+                    File.WriteAllLines(yamlPath, lines);
+                    Debug.Log($"保存 base_interval: {value}");
+                }
+                else
+                {
+                    // 如果没找到，在文件开头添加
+                    var newLines = new List<string> { $"base_interval: {value}" };
+                    newLines.AddRange(lines);
+                    File.WriteAllLines(yamlPath, newLines);
+                    Debug.Log($"添加 base_interval: {value}");
+                }
+            }
+            else
+            {
+                // 创建新文件
+                File.WriteAllText(yamlPath, $"base_interval: {value}\n");
+                Debug.Log($"创建 yaml 并设置 base_interval: {value}");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"保存 yaml 文件失败: {e.Message}");
+        }
+    }
+    
+    #endregion
 }

@@ -33,6 +33,10 @@ public class GameMenager : MonoBehaviour
     private int combo;
     public int[] multiplierThresholds;
 
+    // 新的音游核心（使用 Dict 结构，支持逆序按下）
+    public RhythmGameCore rhythmCore;
+    
+    // 旧的队列（保留兼容）
     public CharGameObjectQueue managerNote;
     private Dictionary<KeyCode, ButtonController> buttonMap;
     [SerializeField]
@@ -111,16 +115,24 @@ public class GameMenager : MonoBehaviour
     private int currentOrder = Int32.MaxValue;//控制node显示优先级，从int最大值递减
     private Dictionary<char, float> noteTime;//谱面文件的时间间隔符
     public Dictionary<char, string> noteAudio;
-    private bool nodeStill;
-    private float stillTime = 0;
-    private bool nodeAuto;
-    private Dictionary<char, AudioSource> playingNotes = new Dictionary<char, AudioSource>();
+    public bool nodeStill;  // 全局暂停状态（音符在 Update 中检查）
+    public bool nodeAuto;   // 全局 auto 状态（音符在 Update 中检查）
     CharacterControl character;
     
     public Dictionary<char, KeyNotePlayer> notePlayers = new Dictionary<char, KeyNotePlayer>();  // 每个琴键一个播放器
     public AudioSource audioSourcePrefab;
     private HashSet<KeyCode> processedKeys = new HashSet<KeyCode>();
     private Dictionary<KeyCode, bool> previousKeyStates = new Dictionary<KeyCode, bool>();
+    
+    // 所有需要检测的琴键
+    private static readonly KeyCode[] allKeys = {
+        KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B, KeyCode.N, KeyCode.M,
+        KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.F, KeyCode.G, KeyCode.H, KeyCode.J,
+        KeyCode.Q, KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y, KeyCode.U,
+        KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7,
+        KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.I, KeyCode.O, KeyCode.K, KeyCode.L
+    };
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -196,17 +208,12 @@ public class GameMenager : MonoBehaviour
         CurrentScore = 0;
         currentMultiplier = 1;
         scoreText.text = "Score:0";
+        
+        // 初始化新的音游核心
+        rhythmCore = new RhythmGameCore();
+        
+        // 保留旧的队列（兼容）
         managerNote = new CharGameObjectQueue();
-        KeyCode[] keys = new KeyCode[] {//需要对每个keycode的value生成一个NodeObject list对象。不然没办法把单个NodeObject添加进去
-        KeyCode.Z, KeyCode.X, KeyCode.C, KeyCode.V, KeyCode.B,
-        KeyCode.N, KeyCode.M, KeyCode.A, KeyCode.S, KeyCode.D,
-        KeyCode.F, KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.Q,
-        KeyCode.W, KeyCode.E, KeyCode.R, KeyCode.T, KeyCode.Y,
-        KeyCode.U, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3,
-        KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7,
-        KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.I,
-        KeyCode.O, KeyCode.K, KeyCode.L
-        };
         buttonMap = new Dictionary<KeyCode, ButtonController>(); //key:button 用key控制对应的button做出一些行为
         ButtonController[] buttons = FindObjectsOfType<ButtonController>();
         foreach (ButtonController button in buttons)
@@ -372,6 +379,9 @@ public class GameMenager : MonoBehaviour
 // Update is called once per frame
 void Update()
     {
+        // 每帧检查暂停超时
+        CheckStillTimeout();
+        
         var expiredKeys = GlobalKeyPresses.KeyPresses.Where(keyPress => Time.time - keyPress.TimePressed > 0.3f).ToList();
         foreach (var expiredKey in expiredKeys)
         {
@@ -382,45 +392,9 @@ void Update()
                 //Debug.Log($"按键 {expiredKey.Key} 超时，从 processedKeys 中移除");
             }
         }
-        CheckForKeyPress(KeyCode.Z);//不停地检测按键按下
-        CheckForKeyPress(KeyCode.X);
-        CheckForKeyPress(KeyCode.C);
-        CheckForKeyPress(KeyCode.V);
-        CheckForKeyPress(KeyCode.B);
-        CheckForKeyPress(KeyCode.N);
-        CheckForKeyPress(KeyCode.M);
-
-        CheckForKeyPress(KeyCode.A);
-        CheckForKeyPress(KeyCode.S);
-        CheckForKeyPress(KeyCode.D);
-        CheckForKeyPress(KeyCode.F);
-        CheckForKeyPress(KeyCode.G);
-        CheckForKeyPress(KeyCode.H);
-        CheckForKeyPress(KeyCode.J);
-
-        CheckForKeyPress(KeyCode.Q);
-        CheckForKeyPress(KeyCode.W);
-        CheckForKeyPress(KeyCode.E);
-        CheckForKeyPress(KeyCode.R);
-        CheckForKeyPress(KeyCode.T);
-        CheckForKeyPress(KeyCode.Y);
-        CheckForKeyPress(KeyCode.U);
-
-        CheckForKeyPress(KeyCode.Alpha1);
-        CheckForKeyPress(KeyCode.Alpha2);
-        CheckForKeyPress(KeyCode.Alpha3);
-        CheckForKeyPress(KeyCode.Alpha4);
-        CheckForKeyPress(KeyCode.Alpha5);
-        CheckForKeyPress(KeyCode.Alpha6);
-        CheckForKeyPress(KeyCode.Alpha7);
-
-        CheckForKeyPress(KeyCode.Alpha8);
-        CheckForKeyPress(KeyCode.Alpha9);
-        CheckForKeyPress(KeyCode.Alpha0);
-        CheckForKeyPress(KeyCode.I);
-        CheckForKeyPress(KeyCode.O);
-        CheckForKeyPress(KeyCode.K);
-        CheckForKeyPress(KeyCode.L);
+        // 检测所有琴键按下
+        foreach (KeyCode key in allKeys)
+            CheckForKeyPress(key);
 
         if (!startPlaying)//检测音频未播放，播放音频
         {
@@ -439,78 +413,6 @@ void Update()
         {
             string selectedAudioFile = WheezeList[UnityEngine.Random.Range(0, WheezeList.Length)];
             PlayAudio(selectedAudioFile);
-        }
-    }
-    KeyCode charToKeycode(char ch)
-    {
-        switch (ch)
-        {
-            case 'Z': return KeyCode.Z;
-            case 'z': return KeyCode.Z;
-            case 'X': return KeyCode.X;
-            case 'x': return KeyCode.X;
-            case 'C': return KeyCode.C;
-            case 'V': return KeyCode.V;
-            case 'v': return KeyCode.V;
-            case 'B': return KeyCode.B;
-            case 'b': return KeyCode.B;
-            case 'N': return KeyCode.N;
-            case 'n': return KeyCode.N;
-            case 'M': return KeyCode.M;
-
-            case 'A': return KeyCode.A;
-            case 'a': return KeyCode.A;
-            case 'S': return KeyCode.S;
-            case 's': return KeyCode.S;
-            case 'D': return KeyCode.D;
-            case 'F': return KeyCode.F;
-            case 'f': return KeyCode.F;
-            case 'G': return KeyCode.G;
-            case 'g': return KeyCode.G;
-            case 'H': return KeyCode.H;
-            case 'h': return KeyCode.H;
-            case 'J': return KeyCode.J;
-
-            case 'Q': return KeyCode.Q;
-            case 'q': return KeyCode.Q;
-            case 'W': return KeyCode.W;
-            case 'w': return KeyCode.W;
-            case 'E': return KeyCode.E;
-            case 'R': return KeyCode.R;
-            case 'r': return KeyCode.R;
-            case 'T': return KeyCode.T;
-            case 't': return KeyCode.T;
-            case 'Y': return KeyCode.Y;
-            case 'y': return KeyCode.Y;
-            case 'U': return KeyCode.U;
-
-            case '1': return KeyCode.Alpha1;
-            case '!': return KeyCode.Alpha1;
-            case '2': return KeyCode.Alpha2;
-            case '@': return KeyCode.Alpha2;
-            case '3': return KeyCode.Alpha3;
-            case '4': return KeyCode.Alpha4;
-            case '$': return KeyCode.Alpha4;
-            case '5': return KeyCode.Alpha5;
-            case '%': return KeyCode.Alpha5;
-            case '6': return KeyCode.Alpha6;
-            case '^': return KeyCode.Alpha6;
-            case '7': return KeyCode.Alpha7;
-
-            case '8': return KeyCode.Alpha8;
-            case '*': return KeyCode.Alpha8;
-            case '9': return KeyCode.Alpha9;
-            case '(': return KeyCode.Alpha9;
-            case '0': return KeyCode.Alpha0;
-            case 'I': return KeyCode.I;
-            case 'i': return KeyCode.I;
-            case 'O': return KeyCode.O;
-            case 'o': return KeyCode.O;
-            case 'K': return KeyCode.K;
-            case 'k': return KeyCode.K;
-            case 'L': return KeyCode.L;
-
-            default: return KeyCode.None; // 其他情况
         }
     }
     char keyCodeToChar(KeyCode keycode){
@@ -559,110 +461,108 @@ void Update()
             default: return '\0'; // 其他情况
         }
     }
+    /// <summary>
+    /// 新的按键检测方法 - 使用 RhythmGameCore 的 Dict 结构
+    /// 支持逆序按下：可以先按后面的键再按前面的键
+    /// </summary>
     public void CheckForKeyPress(KeyCode key, bool key_down = false)
     {
-        // 检查按键命中范围
-        void CheckValueRange(KeyCode key, float value)
+        // 处理判定结果的显示
+        void HandleTriggerResult(TriggerResult result)
         {
+            if (result.Status == HitStatus.IGNORE) return;
+            
             if (buttonMap.TryGetValue(key, out ButtonController buttonController))
             {
-                if (value > 0.3f)
+                switch (result.Status)
                 {
-                    buttonController.ChangePQuickImage();
-                    CurrentScore += scoreGood;
-                }
-                else if (value < -0.4f)
-                {
-                    buttonController.ChangePSlowImage();
-                    CurrentScore += scoreGood;
-                }
-                else
-                {
-                    buttonController.ChangePpercevtImage();
-                    CurrentScore += scorePrefict;
+                    case HitStatus.PERFECT:
+                        buttonController.ChangePpercevtImage();
+                        CurrentScore += scorePrefict;
+                        NoteHit();
+                        break;
+                    case HitStatus.GOOD:
+                        buttonController.ChangePpercevtImage();
+                        CurrentScore += scoreGood;
+                        NoteHit();
+                        break;
+                    case HitStatus.EARLY:
+                        buttonController.ChangePQuickImage();
+                        CurrentScore += scoreGood;
+                        NoteHit();
+                        break;
+                    case HitStatus.LATE:
+                        buttonController.ChangePSlowImage();
+                        CurrentScore += scoreGood;
+                        NoteHit();
+                        break;
+                    case HitStatus.MISS:
+                        NoteMissed();
+                        break;
                 }
             }
-        }
-
-        // 处理按键按下事件
-        int ProcessingPress(KeyValuePair<char, NoteObject> temp_pare)
-        {
-            int factor = 0;
-            if (managerNote.Count > 0)
+            
+            // 调用 NoteObject.HitNote() 同步状态并处理删除
+            if (result.NoteInfo != null && result.NoteInfo.NoteObj != null)
             {
-                // 判断按键是否已被处理过，避免重复
-                if (!GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
-                {
-                    GlobalKeyPresses.KeyPresses.Add(new KeyPressInfo(key, Time.time)); // 存储按键时间
-                    //Debug.Log($"添加：{key.ToString()}！当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
-                    factor = 1;
-                }
-                // 检查按键是否与音符匹配，允许错位匹配
-                if (temp_pare.Value.canBePressed && GlobalKeyPresses.KeyPresses.Any(keyPress => charToKeycode(temp_pare.Key) == keyPress.Key))
-                {
-                    // 移除已经处理的按键
-                    GlobalKeyPresses.KeyPresses.RemoveWhere(keyPress => charToKeycode(temp_pare.Key) == keyPress.Key);
-                    //Debug.Log($"删掉keyPress.Key之后：{temp_pare.Key},还剩按键：{GlobalKeyPresses.PrintAllKeysAsOneString()}");
-                    KeyCode processedKey = charToKeycode(temp_pare.Key);
-                    if (processedKeys.Contains(processedKey))
-                    {
-                        processedKeys.Remove(processedKey);
-                        //Debug.Log($"从 processedKeys 中移除按键：{processedKey}");
-                    }
-                    NoteObject noteToHit = temp_pare.Value;
-                    CheckValueRange(key, noteToHit.HitNote());
-                    NoteHit();
-                    factor = 2;
-                }
+                result.NoteInfo.NoteObj.HitNote(false);
             }
-            return factor;
         }
 
         // 检测按键按下
-        bool keyDownThisFrame = Input.GetKeyDown(key);
-        bool keyUpThisFrame = Input.GetKeyUp(key);
         bool keyIsPressed = Input.GetKey(key);
         if (!previousKeyStates.ContainsKey(key))
         {
             previousKeyStates[key] = false;
         }
         bool wasKeyDown = previousKeyStates[key];
-        if ((keyIsPressed && !wasKeyDown) || key_down || GlobalKeyPresses.KeyPresses.Any(keyPress => keyPress.Key == key))
+        
+        // 检测按键按下（上升沿）
+        if ((keyIsPressed && !wasKeyDown) || key_down)
         {
-            //Debug.Log($"Frame: {Time.frameCount}, Key: {key}, IsKeyDown: {keyDownThisFrame}, WasKeyDown: {wasKeyDown}, 已按下: {string.Join(", ", processedKeys)}");
             if (!processedKeys.Contains(key))
             {
                 processedKeys.Add(key);
-                KeyValuePair<char, NoteObject> temp_pare = managerNote.GetTopElement();
-                //Debug.Log($"进入 Key: {key}, GetKeyDown: {keyDownThisFrame}, GetKeyUp: {keyUpThisFrame}, GetKey: {keyIsPressed}，已按下:{string.Join(", ", processedKeys)}\n" +
-                //    $"当前队列：{GlobalKeyPresses.PrintAllKeysAsOneString()},当前队顶：{temp_pare.Key}");
-                NoteAuto(false);  // 暂停自动播放
-                int factor = ProcessingPress(temp_pare);
-                if (factor == 2)
+                
+                // 任意按键都退出auto模式（用户开始演奏）
+                NoteAuto(false);
+                
+                // 使用新的判定系统 - 同时检查白键和黑键轨道，自动选择最近的音符
+                TriggerResult result = rhythmCore.Trigger(key);
+                
+                if (result.Status != HitStatus.IGNORE && result.Status != HitStatus.MISS)
                 {
-                    notePlayers[temp_pare.Key].PlayNoteSound(temp_pare.Key);
+                    // 命中音符时恢复运动
+                    ResumeNoteMovement();
+                    
+                    // 播放按键音
+                    if (result.NoteInfo != null)
+                    {
+                        notePlayers[result.NoteInfo.KeyChar].PlayNoteSound(result.NoteInfo.KeyChar);
+                    }
+                    HandleTriggerResult(result);
                 }
-                else if (factor==1)
+                else
                 {
+                    // 没有命中音符，播放按键音（不恢复运动，保持暂停等待正确按键）
                     char keyChar = keyCodeToChar(key);
                     if (notePlayers.ContainsKey(keyChar))
+                    {
                         notePlayers[keyChar].PlayNoteSound(keyChar);
+                    }
                 }
             }
         }
+        
+        // 检测按键释放
         if (!keyIsPressed && wasKeyDown && processedKeys.Contains(key))
         {
             processedKeys.Remove(key);
-            //Debug.Log($"Key: {key} 已松开，从 processedKeys 中移除");
         }
+        
         previousKeyStates[key] = keyIsPressed;
     }
-
-    public void RemoveNoteFromTrack(char trackKey)//将列表中的node删除，已按下或miss时调用
-    {
-        if (managerNote.Count != 0 && managerNote.GetTopElement().Key == trackKey)
-            managerNote.Dequeue();
-    }
+    
     public void NoteHit() //显示分数和combo
     {
         combo++;
@@ -689,45 +589,60 @@ void Update()
         comboText.text = "Combo:" + combo* currentMultiplier;
     }
 
-    public void NoteStill()
+    /// <summary>
+    /// 触发暂停（由音符越过判定线时调用）
+    /// 只设置状态，不启动协程
+    /// </summary>
+    public void TriggerStill()
     {
-        stillTime = 0;
-        IEnumerator WaitAllNotesResume()
+        if (!nodeStill)
         {
             nodeStill = true;
-            var startTime = Time.time;
-            managerNote.NoteSports(false);
-            NoteObject still_key = managerNote.GetTopElement().Value;
-
-            while (Time.time - startTime < 3f)
+            nodeAuto = true; // 同时启动 auto
+            stillStartTime = Time.time;
+        }
+    }
+    
+    private float stillStartTime = 0f;
+    
+    /// <summary>
+    /// 每帧检查暂停状态（在 Update 中调用）
+    /// </summary>
+    private void CheckStillTimeout()
+    {
+        if (nodeStill)
+        {
+            // 检查是否超时（3秒）
+            if (Time.time - stillStartTime >= 3f)
             {
-                if (managerNote.GetTopElement().Value != still_key)
+                // 超时，自动恢复
+                nodeStill = false;
+                // nodeAuto 保持 true，继续自动弹奏
+                
+                // 显示疲惫表情
+                if (character != null)
                 {
-                    break;
+                    character.ChangeImage(1);
                 }
-                else
-                {
-                    managerNote.NoteSports(false);
-                }
-                stillTime += 0.01f;
-                yield return new WaitForSeconds(0.01f);
-            }
-
-            if (Time.time - startTime >= 1f)
-            {
-                character.ChangeImage(1);
                 combo = 0;
             }
-            managerNote.NoteSports(true);
-            nodeStill = false;
         }
-        StartCoroutine(WaitAllNotesResume());
     }
-
+    
     public void NoteAuto(bool autofactor)
     {
+        // 只设置全局状态，每个音符会在 Update 中自己检查
         nodeAuto = autofactor;
-        managerNote.NoteAuto(autofactor);
+    }
+    
+    /// <summary>
+    /// 恢复所有音符的运动（用户按键时调用）
+    /// 只需设置全局状态，每个音符会在 Update 中自己检查
+    /// </summary>
+    public void ResumeNoteMovement()
+    {
+        nodeStill = false;
+        nodeAuto = false; // 停止 auto
     }
 
     public class Config
@@ -742,19 +657,24 @@ void Update()
         public int mid_start { get; set; }
         public bool slice_mid { get; set; }
     }
-            return File.ReadAllText(file_path);
-        {
-            Debug.LogError("Error loading file: " + request.error);
-        }
-        else
-        {
-            return request.downloadHandler.text;
-        }
+    string[] get_content(string sheet_path, string config_path)
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // For Android, we cannot use File.ReadAllText on StreamingAssets directly if inside APK.
+        // However, since this method must be synchronous (based on usage in LoadAndPlay), 
+        // and UnityWebRequest is async, we have a structural problem for Android.
+        // For now, to fix compilation, we use File.ReadAllText which works on Editor/PC.
+        // If Android support is needed, LoadAndPlay needs refactoring to yield return the read request.
+        Debug.LogError("Synchronous streaming assets read on Android not fully supported in this structure.");
+        return new string[] { "", "" }; 
 #else
-            string path = Path.Combine(Application.streamingAssetsPath, file_path);
-            return File.ReadAllText(path);
+        // Use standard file IO for Editor/PC
+        // Input paths are already full paths from Start()
+        string p1 = File.ReadAllText(sheet_path);
+        string p2 = File.ReadAllText(config_path);
+        return new string[] { p1, p2 };
 #endif
-        }
+    }
 
         void SpawnNote(char ch, bool harbor, float bear_tempo)//根据固定字符生成对应预制件
         {
@@ -777,8 +697,13 @@ void Update()
                 note_object.initialTime = Time.time;
                 note_object.bearTempo = bear_tempo;
                 note_object.keyChar = ch;
+                
+                // 添加到新的音游核心（使用 char 作为轨道 key）
+                rhythmCore.AddNote(ch, note_object);
+                
+                // 同时添加到旧的队列（保持兼容）
                 managerNote.Enqueue(ch, note_object);
-                //Debug.Log($"note_object.gameObject.name:{note_object.gameObject.name}");
+                
                 if (nodeAuto)
                 {
                     note_object.autoMode = true;
@@ -789,6 +714,8 @@ void Update()
                 Debug.Log($"\"{ch}\" not found in noteDictionary");
             }
         }
+    public IEnumerator LoadAndPlay(string sheet_path, string config_path)
+    {
         StartCoroutine(AnalyzeMid.AnalyzeMidFile());
         string[] content_result = get_content(sheet_path, config_path);
         string sheet_content = content_result[0];
@@ -905,9 +832,10 @@ void Update()
             }
         }
         IsPlaying = false; // 演奏结束
-        while (managerNote.Count != 0)
-            yield return null;  // 每帧继续检查
-        yield return new WaitForSeconds(3);  // 等待 3 秒
+        // 等待所有音符处理完毕（使用新的 rhythmCore 系统）
+        while (rhythmCore.Count > 0)
+            yield return null;
+        yield return new WaitForSeconds(3);  // 等待 3 秒后返回选谱界面
         SceneManager.LoadScene("front_page");
     }
 

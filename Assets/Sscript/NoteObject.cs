@@ -1,73 +1,92 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
-using System.Diagnostics;
-using static UnityEngine.GraphicsBuffer;
-using YamlDotNet.Core.Tokens;
 
 public class NoteObject : MonoBehaviour
 {
     public float bearTempo;
-    //private float downSumTtime;
 
     public bool canBePressed;
     private bool isPressed;
     public char keyChar;
     public KeyCode keyToPress;
     public float initialTime;
-
-    public bool nodeSports;
     public bool autoMode = false;
+    
+    // æ–°å¢ï¼šå…³è”çš„ NoteInfo å¼•ç”¨ï¼ˆç”¨äºæ–°çš„åˆ¤å®šç³»ç»Ÿï¼‰
+    [HideInInspector]
+    public NoteInfo noteInfo;
 
-
-    // Start is called before the first frame update
     void Start()
     {
-        nodeSports = true;
         canBePressed = false;
         isPressed = false;
-        //downSumTtime = 11.5f / bearTempo;
     }
 
     void Update()
     {
-        //float timeDifference = downSumTtime - (Time.time - initialTime);
         float timeDifference = transform.position.y - 0.95f;
-        //UnityEngine.Debug.Log($"this.gameObject.name:{this.gameObject.name},nodeSports:{nodeSports}");
-        if (nodeSports)
+        
+        // æ¯å¸§æ£€æŸ¥å…¨å±€çŠ¶æ€ï¼Œè€Œä¸æ˜¯ä¾èµ–å®ä¾‹å˜é‡
+        // è¿™æ ·æ–°ç”Ÿæˆçš„éŸ³ç¬¦ä¹Ÿèƒ½ç«‹å³å“åº”æš‚åœ
+        bool shouldMove = !GameMenager.instance.nodeStill;
+        
+        // æ£€æŸ¥å…¨å±€ auto çŠ¶æ€
+        bool isAutoMode = autoMode || GameMenager.instance.nodeAuto || gameObject.tag == "Harbor";
+        
+        if (shouldMove)
         {
             transform.position -= new Vector3(0f, bearTempo * Time.deltaTime, 0f);
-            if (autoMode || gameObject.tag == "Harbor") //×Ô¶¯Ä£Ê½£¬»ò ±ê¼ÇÎªÒş²ØµÄ°´¼ü¡£Òş²Ø°´¼üÎª°´¼üÇ°Ãæ´ø! ÓÉSpawnNoteÉú³ÉnoteÊ±ÉèÖÃ
+            
+            // è‡ªåŠ¨æ¨¡å¼æˆ–éšè—æŒ‰é”®
+            if (isAutoMode)
             {
-                if (timeDifference <= 0.1)//ÒòÎªÏÂÃæÊÇµÚÒ»´ÎmissºóµÄauto£¬¸Ä±äÁËautoModeÖ®ºó»áµ½ÕâÀï¡£ËùÒÔµÚÒ»´ÎautoµÄDifferenceÊÇÒ»¸öºÜ´óµÄ¸ºÊı¡£¹Ê´ËĞèÒªÅĞ¶ÏĞ¡ÓÚ-0.02 ¼æ¹ËµÚÒ»´ÎautoµÄ°´¼ü£¬Ê¹Æä°´ÏÂ
+                if (timeDifference <= 0.1 && !isPressed)
                 {
-                    if(GameMenager.instance.managerNote.Count != 0 && GameMenager.instance.managerNote.GetTopElement().Key == keyChar)
+                    // æ£€æŸ¥æ˜¯å¦å·²è¢«æ ‡è®°åˆ é™¤
+                    if (noteInfo == null || !noteInfo.IsDeleted)
+                    {
                         GameMenager.instance.notePlayers[keyChar].PlayNoteSound(keyChar);
-                    HitNote(true);
+                        HitNote(true);
+                    }
                 }
             }
-            else if (canBePressed && transform.position.y <= 0.3)
+            else if (canBePressed && transform.position.y <= 0.5 && !isPressed && (noteInfo == null || !noteInfo.IsDeleted))
             {
-                GameMenager.instance.NoteStill();
-                GameMenager.instance.NoteAuto(true);//µÚÒ»´ÎmissÊ±×Ô¶¯auto                
+                UnityEngine.Debug.Log($"[NoteObject] éŸ³ç¬¦ '{keyChar}' (ID={noteInfo?.NoteId}) è§¦å‘æš‚åœ, y={transform.position.y:F3}");
+                GameMenager.instance.TriggerStill();
             }
         }
     }
 
     public float HitNote(bool auto = false)
     {
-        isPressed = true; // ±ê¼ÇÎªÒÑ°´ÏÂ
-        if (auto == false && autoMode == true) //±íÊ¾Õı³£°´ÏÂ£¬·Ç½Å±¾¿ØÖÆ
+        if (isPressed) return 0f; // é˜²æ­¢é‡å¤å¤„ç†
+        
+        isPressed = true;
+        
+        if (auto == false && autoMode == true)
         {
             GameMenager.instance.NoteAuto(false);
         }
-        GameMenager.instance.RemoveNoteFromTrack(keyChar);
-        //Debug.Log($"HitNote Disappeared:{this.GetHashCode()}");
+        
+        // æ ‡è®° RhythmCore ä¸­çš„éŸ³ç¬¦ä¸ºå·²åˆ é™¤ï¼ˆå¦‚æœè¿˜æ²¡æ ‡è®°çš„è¯ï¼‰
+        if (noteInfo != null && !noteInfo.IsDeleted)
+        {
+            noteInfo.IsDeleted = true;
+        }
+        
+        // å»¶è¿Ÿåˆ é™¤éŸ³ç¬¦ï¼ˆéšè— GameObjectï¼‰
+        StartCoroutine(DelayedHide());
+        
         return transform.position.y - 0.90f;
     }
+    
+    private IEnumerator DelayedHide()
+    {
+        yield return new WaitForSeconds(0.1f);
+        gameObject.SetActive(false);
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (gameObject.tag != "Harbor" && other.tag == "Activator")
@@ -75,15 +94,13 @@ public class NoteObject : MonoBehaviour
             canBePressed = true;
         }
     }
+
     private void OnTriggerExit2D(Collider2D other)
     {
         if (other.tag == "Activator" && !isPressed)
         {
-            UnityEngine.Debug.Log($"{this.gameObject.name} note out of range");
-            canBePressed = false;
-            GameMenager.instance.NoteMissed();
-            GameMenager.instance.RemoveNoteFromTrack(keyChar);
+            // éŸ³ç¬¦ç¦»å¼€åˆ¤å®šåŒºä½†æœªè¢«æŒ‰ä¸‹ï¼Œä¿æŒå¯æŒ‰çŠ¶æ€ç­‰å¾…æš‚åœæœºåˆ¶å¤„ç†
+            canBePressed = true;
         }
     }
-    
 }
